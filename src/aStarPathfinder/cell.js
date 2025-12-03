@@ -1,7 +1,11 @@
 import { useState } from 'react';
 
-function handleChangeCellType() {
-
+function handleChangeCellType(e) {
+    if(e.ctrlKey){
+        e.target.classList.add("end")
+    }else{
+        e.target.classList.add("start")
+    }
 }
 
 export default function Cell({ row, column }) {
