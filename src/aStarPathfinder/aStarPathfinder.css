@@ -21,3 +21,7 @@
 .end {
     background-color: rgb(220, 66, 0);
 }
+
+.wall {
+    background-color: rgb(0, 0, 0);
+}
