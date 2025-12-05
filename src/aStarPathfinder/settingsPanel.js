@@ -22,9 +22,10 @@ function startSearch() {
     const endNodeRow = endNodeID.split("-")[0];
     const endNodeColumn = endNodeID.split("-")[1];
 
-    // openList.push({id: startNodeID})
+    openList.push(startNodeID)
 
-    function getGcost(row, column) {
+    //path is an array of parentIDs
+    function getGcost(row, column, path) {
       
     }
 
@@ -54,21 +55,61 @@ function startSearch() {
     }
 
     function getFcost(row, column) {
-      return (getGcost(row,column) + getHcost(row,column));
+      return ( getGcost(row,column) + getHcost(row,column) );
     }
   
 
     while(true) {
+      //openlist = [{id: , f_cost: , path: []}, ]
       let currentNode;
+      var indexOfCurrentNode = 0;
 
-      if(openList.length >= 1) {
-        currentNode = openList.reduce((minimumValue, currentValue) => (currentValue < minimumValue ? currentValue : minimumValue), openList[0]);
+      if(openList.length > 1) {
+        // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
+        let min_f_cost = 0;
+        let index_min_f_cost = 0;
+
+        for(var i=0; i<openList.length; i++) {
+          let current_f_cost = openList[i].f_cost;
+
+          if(current_f_cost < min_f_cost) {
+            min_f_cost = current_f_cost;
+            index_min_f_cost = i;
+          }
+        }
+        currentNode = openList[index_min_f_cost];
+        indexOfCurrentNode = index_min_f_cost;
         console.log(currentNode)
       }else{
-        currentNode = openList[0]
+        currentNode = {id: openList[0]}
       }
-      
-      console.log(getHcost(9,2))
+
+      closedList.push(openList[indexOfCurrentNode]);
+      openList.splice(indexOfCurrentNode, 1);
+      console.log(currentNode)
+
+      //if end node is found
+      if(currentNode.id == endNodeID) {
+        return
+      }
+
+      //find neighbours
+      let id_of_neighbour_nodes = [];
+      let current_row = currentNode.id.split("-")[0];
+      let current_column = currentNode.id.split("-")[1];
+
+      //search neighbours from top left to bottom right
+      for(var i=-1; i<2; i++) {
+        let row_to_be_searched = current_row + i;
+
+        for(var j=-1; j<2; j++) {
+          let column_to_be_searched = current_column + i;
+          let id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+          if(document.getElementById(id_to_be_searched)) id_of_neighbour_nodes.push(id_to_be_searched);
+        }
+      }
+      console.log(id_of_neighbour_nodes)
   
 
       break
