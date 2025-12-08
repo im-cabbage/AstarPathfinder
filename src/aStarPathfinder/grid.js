@@ -1,12 +1,15 @@
+import { useState } from "react";
 import Cell from "./cell";
 
 export default function Grid({ settings }) {
+    const [startCell, setStartCell] = useState("");
     const gridSizeObject = {
         small: 10,
         medium: 20,
         large: 30
     }
     const gridSize = gridSizeObject[settings.gridSize];
+    const cellTypeSelector = settings.cellTypeSelector;
 
     let cells = [];
 
@@ -15,8 +18,17 @@ export default function Grid({ settings }) {
 
         for(let j=1; j<=gridSize; j++) {
             const column = j;
-            
-            cells.push(<Cell key={`${i}${j}`} row={row} column={column}/>)
+            const id = `${row}${column}`;
+            cells.push(
+                <Cell 
+                key={id} 
+                row={row} 
+                column={column} 
+                cellTypeSelector={cellTypeSelector}
+                isStart={startCell == id}
+                setStart={() => setStartCell(id)}
+                />
+            )
         }
     }
 

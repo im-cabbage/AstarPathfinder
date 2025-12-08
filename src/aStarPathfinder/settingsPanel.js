@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Grid from './grid';
 
 function startSearch() {
     /*
@@ -119,17 +120,60 @@ function startSearch() {
 }
 
 export default function SettingsPanel() {
-    const [settings, setSettings] = useState({gridSize: "small"});
+    const [settings, setSettings] = useState({
+      gridSize: "small", 
+      cellTypeSelector: "start"
+    });
+    
+    function changeCellTypeSelector(selector) {
+      switch(selector) {
+          case "start":
+            setSettings({
+              ...settings,
+              cellTypeSelector: "start"
+            });
+            document.getElementById("start").classList.add("selected");
+            document.getElementById("end").classList.remove("selected");
+            document.getElementById("wall").classList.remove("selected");
+            break;
+          case "end":
+            setSettings({
+              ...settings,
+              cellTypeSelector: "end"
+            });
+            document.getElementById("start").classList.remove("selected");
+            document.getElementById("end").classList.add("selected");
+            document.getElementById("wall").classList.remove("selected");
+            break;
+          case "wall":
+            setSettings({
+              ...settings,
+              cellTypeSelector: "wall"
+            });
+            document.getElementById("start").classList.remove("selected");
+            document.getElementById("end").classList.remove("selected");
+            document.getElementById("wall").classList.add("selected");
+            break;
+
+          default:
+            break;
+      }
+    }
+    
 
     return (
+      <>
         <div id="settingsPanel">
           <div id="cellSelector">
-            <div id="start">Start</div>
-            <div id="end">End</div>
-            <div id="wall">Wall</div>
+            <div id="start" onClick={()=>{changeCellTypeSelector("start")}}>Start</div>
+            <div id="end" onClick={()=>{changeCellTypeSelector("end")}}>End</div>
+            <div id="wall" onClick={()=>{changeCellTypeSelector("wall")}}>Wall</div>
           </div>
           <div id="startSearch" onClick={startSearch}>Search</div>
         </div>
+        <Grid settings={settings}/>
+      </>
+        
     );
 }
 //settings :
