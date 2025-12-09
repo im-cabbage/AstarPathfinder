@@ -1,7 +1,55 @@
 import { useState } from 'react';
 import Grid from './grid';
 
-function startSearch() {
+//settings :
+//algorithm(a*, bfs, dfs, dijkstra)
+//gridsize
+//cell type selector / cellType: start, end, wall, blank
+//search button
+export default function SettingsPanel() {
+  // const [gridStructureArray, setGridStructureArray] = useState([]);
+  const [settings, setSettings] = useState({
+    gridSize: 10, 
+    cellTypeSelector: "start"
+  });
+
+  
+  function changeCellTypeSelector(selector) {
+    switch(selector) {
+        case "start":
+          setSettings({
+            ...settings,
+            cellTypeSelector: "start"
+          });
+          document.getElementById("start").classList.add("selected");
+          document.getElementById("end").classList.remove("selected");
+          document.getElementById("wall").classList.remove("selected");
+          break;
+        case "end":
+          setSettings({
+            ...settings,
+            cellTypeSelector: "end"
+          });
+          document.getElementById("start").classList.remove("selected");
+          document.getElementById("end").classList.add("selected");
+          document.getElementById("wall").classList.remove("selected");
+          break;
+        case "wall":
+          setSettings({
+            ...settings,
+            cellTypeSelector: "wall"
+          });
+          document.getElementById("start").classList.remove("selected");
+          document.getElementById("end").classList.remove("selected");
+          document.getElementById("wall").classList.add("selected");
+          break;
+
+        default:
+          break;
+    }
+  }
+  
+  function startSearch() {
     /*
     G cost: distance from starting node
     H cost: distance from end node (Heuristic)
@@ -9,10 +57,6 @@ function startSearch() {
 
     CLOSED cell = searched already
     */
-
-    // alert("s")
-    // document.getElementById('92').classList.add('start');
-    // document.getElementById('19').classList.add('end');
 
     let openList = [];
     let closedList = [];
@@ -61,10 +105,11 @@ function startSearch() {
   
 
     while(true) {
-      //openlist = [{id: , f_cost: , path: []}, ]
+      //openlist = [{id: , f_cost: , path: [first,..] }, ]
       let currentNode;
       var indexOfCurrentNode = 0;
 
+      //find node with lowest f_cost in openlist
       if(openList.length > 1) {
         // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
         let min_f_cost = 0;
@@ -96,8 +141,8 @@ function startSearch() {
 
       //find neighbours
       let id_of_neighbour_nodes = [];
-      let current_row = currentNode.id.split("-")[0];
-      let current_column = currentNode.id.split("-")[1];
+      const current_row = currentNode.id.split("-")[0];
+      const current_column = currentNode.id.split("-")[1];
 
       //search neighbours from top left to bottom right
       for(var i=-1; i<2; i++) {
@@ -115,69 +160,24 @@ function startSearch() {
 
       break
     }
+  }
 
-
-}
-
-export default function SettingsPanel() {
-    const [settings, setSettings] = useState({
-      gridSize: "small", 
-      cellTypeSelector: "start"
-    });
-    
-    function changeCellTypeSelector(selector) {
-      switch(selector) {
-          case "start":
-            setSettings({
-              ...settings,
-              cellTypeSelector: "start"
-            });
-            document.getElementById("start").classList.add("selected");
-            document.getElementById("end").classList.remove("selected");
-            document.getElementById("wall").classList.remove("selected");
-            break;
-          case "end":
-            setSettings({
-              ...settings,
-              cellTypeSelector: "end"
-            });
-            document.getElementById("start").classList.remove("selected");
-            document.getElementById("end").classList.add("selected");
-            document.getElementById("wall").classList.remove("selected");
-            break;
-          case "wall":
-            setSettings({
-              ...settings,
-              cellTypeSelector: "wall"
-            });
-            document.getElementById("start").classList.remove("selected");
-            document.getElementById("end").classList.remove("selected");
-            document.getElementById("wall").classList.add("selected");
-            break;
-
-          default:
-            break;
-      }
-    }
-    
-
-    return (
-      <>
-        <div id="settingsPanel">
-          <div id="cellSelector">
-            <div id="start" onClick={()=>{changeCellTypeSelector("start")}}>Start</div>
-            <div id="end" onClick={()=>{changeCellTypeSelector("end")}}>End</div>
-            <div id="wall" onClick={()=>{changeCellTypeSelector("wall")}}>Wall</div>
-          </div>
-          <div id="startSearch" onClick={startSearch}>Search</div>
+  return (
+    <>
+      <div id="settingsPanel">
+        <div id="cellSelector">
+          <input id="gridSize" type="number" defaultValue={10} onChange={(e) => setSettings({
+            ...settings,
+            gridSize : e.target.value,
+          })}/>
+          <div id="start" onClick={()=>{changeCellTypeSelector("start")}}>Start</div>
+          <div id="end" onClick={()=>{changeCellTypeSelector("end")}}>End</div>
+          <div id="wall" onClick={()=>{changeCellTypeSelector("wall")}}>Wall</div>
         </div>
-        <Grid settings={settings}/>
-      </>
-        
-    );
+        <div id="startSearch" onClick={startSearch}>Search</div>
+      </div>
+      <Grid settings={settings}/>
+    </>
+      
+  );
 }
-//settings :
-//algorithm(a*, bfs, dfs, dijkstra)
-//gridsize
-//cell type selector / cellType: start, end, wall, blank
-//search button

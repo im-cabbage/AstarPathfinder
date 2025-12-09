@@ -6,12 +6,7 @@ export default function Grid({ settings }) {
     const [startCell, setStartCell] = useState("");
     const [endCell, setEndCell] = useState("");
     const [wallCellArray, setWallCellArray] = useState([]);
-    const gridSizeObject = {
-        small: 10,
-        medium: 20,
-        large: 30
-    };
-    const gridSize = gridSizeObject[settings.gridSize];
+    const gridSize = settings.gridSize;
     const cellTypeSelector = settings.cellTypeSelector;
 
     function handleChangeCellType(id) {
@@ -54,14 +49,13 @@ export default function Grid({ settings }) {
     let cells = [];
     for(let i=1; i<=gridSize; i++) {
         const row = i;
-
+        
         for(let j=1; j<=gridSize; j++) {
             const column = j;
-            const key = `${row}${column}`;
             const id = `${row}-${column}`;
             cells.push(
                 <Cell 
-                key={key} 
+                key={id} 
                 row={row} 
                 column={column} 
                 handleChangeCellType={(id)=>{handleChangeCellType(id)}}
@@ -74,7 +68,13 @@ export default function Grid({ settings }) {
     }
 
     return (
-        <div id="grid" className={`${settings.gridSize}-grid`}>
+        // className={`${settings.gridSize}-grid`}
+        <div 
+        id="grid"
+        style={{
+            '--gridSize': gridSize,
+        }}
+        >
             {cells}
         </div>
     )

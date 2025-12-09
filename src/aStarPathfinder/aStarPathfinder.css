@@ -7,12 +7,14 @@
     width: 1000px;
     display: grid;
     border: solid red;
+    grid-template-rows: repeat( var(--gridSize, 10), 1fr);
+    grid-template-columns: repeat( var(--gridSize, 10), 1fr);
 }
 
-.small-grid {
+/* .small-grid {
     grid-template-rows: repeat(10, 1fr);
     grid-template-columns: repeat(10, 1fr);
-}
+} */
 
 .cell {
     border: solid;

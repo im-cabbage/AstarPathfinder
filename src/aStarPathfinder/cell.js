@@ -1,11 +1,7 @@
 import { useState } from 'react';
 
 export default function Cell({ row, column, handleChangeCellType, startCell, endCell, wallCell}) {
-    //cellType: start, end, wall, blank, open, closed
-    const [cellType, setCelltype] = useState("blank");
-
-    
-    
+   
     const id = `${row}-${column}`;
     let classNames = `cell row-${row} column-${column}`;
 
