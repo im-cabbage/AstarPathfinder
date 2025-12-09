@@ -1,35 +1,33 @@
 import { useState } from 'react';
 
-export default function Cell({ row, column, isStart, cellTypeSelector }) {
+export default function Cell({ row, column, handleChangeCellType, startCell, endCell, wallCell}) {
     //cellType: start, end, wall, blank, open, closed
     const [cellType, setCelltype] = useState("blank");
 
-    function handleChangeCellType() {
-        console.log(cellTypeSelector)
-    }
     
-    const key = `${row}-${column}`;
+    
+    const id = `${row}-${column}`;
     let classNames = `cell row-${row} column-${column}`;
 
-    if(isStart) {
+    if(startCell) {
         classNames += " start"
     }
-    if(cellType === "end") {
+    if(endCell) {
         classNames += " end"
     }
-    if(cellType === "wall") {
+    if(wallCell) {
         classNames += " wall"
     }
 
     return (
         <div 
-        id={key} 
+        id={id} 
         className={classNames}
         data-row={row}
         data-column={column}
-        onClick={handleChangeCellType}
+        onClick={()=>{handleChangeCellType(id)}}
         >
-            {key}
+            {id}
         </div>
     );
     
