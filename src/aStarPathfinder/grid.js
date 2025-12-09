@@ -10,6 +10,21 @@ export default function Grid({ settings, setSettings }) {
   const gridSize = settings.gridSize;
   const cellTypeSelector = settings.cellTypeSelector;
 
+  class CellObject {
+    id;
+    row;
+    width;
+    f_cost;
+    pathFromStartingNode = [];
+    parentNode;
+
+    constructor(id) {
+      this.id = id;
+      this.row = id.split("-")[0];
+      this.width = id.split("-")[1];
+    }
+  }
+
   function handleChangeCellType(id) {
     switch (cellTypeSelector) {
       case "start":
@@ -50,20 +65,6 @@ export default function Grid({ settings, setSettings }) {
     CLOSED cell = searched already
     */
 
-    class cellObject {
-      id;
-      row;
-      width;
-      f_cost;
-      path = [];
-
-      constructor(id) {
-        this.id = id;
-        this.row = id.split("-")[0];
-        this.width = id.split("-")[1];
-      }
-    }
-
     let openList = [];
     let closedList = [];
 
@@ -75,10 +76,34 @@ export default function Grid({ settings, setSettings }) {
     const endNodeRow = endNodeID.split("-")[0];
     const endNodeColumn = endNodeID.split("-")[1];
 
-    openList.push(startNodeID);
+    openList.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
 
     //path is an array of parentIDs
-    function getGcost(row, column, path) {}
+    function getGcost(row, column) {
+      // G cost: distance from starting node using path array
+      const pathFromStartingNode = gridStructureArray[row - 1][column - 1].pathFromStartingNode;
+      if (pathFromStartingNode.length === 0) {
+        if (row === startNodeRow || column === startNodeColumn) {
+          return 10;
+        }
+      } else {
+        return pathFromStartingNode.reduce((totalPathCost, currentNodeId, currentNodeIndex) => {
+          let childNode;
+
+          if (currentNodeIndex !== 0) {
+            childNode = pathFromStartingNode[currentNodeIndex + 1];
+            return false
+          } else { //if first child
+            let row = currentNodeId.split("-")[0];
+            let column = currentNodeId.split("-")[1];
+
+            if (row === startNodeRow || column === startNodeColumn) {
+              return totalPathCost + 10;
+            }
+          }
+        }, 0)
+      }
+    }
 
     function getHcost(row, column) {
       const columnDifference = Math.abs(endNodeColumn - column);
@@ -110,7 +135,6 @@ export default function Grid({ settings, setSettings }) {
     }
 
     while (true) {
-      //openlist = [{id: , f_cost: , path: [first,..] }, ]
       let currentNode;
       var indexOfCurrentNode = 0;
 
@@ -132,11 +156,14 @@ export default function Grid({ settings, setSettings }) {
         indexOfCurrentNode = index_min_f_cost;
         console.log(currentNode);
       } else {
-        currentNode = { id: openList[0] };
+        currentNode = openList[0];
+        console.log(currentNode)
       }
 
       closedList.push(openList[indexOfCurrentNode]);
       openList.splice(indexOfCurrentNode, 1);
+      console.log(closedList);
+      console.log(openList)
       console.log(currentNode);
 
       //if end node is found
@@ -150,11 +177,12 @@ export default function Grid({ settings, setSettings }) {
 
       //search neighbours from top left to bottom right
       for (let i = -1; i < 2; i++) {
-        let row_to_be_searched = current_row + i;
-
+        let row_to_be_searched = parseInt(current_row) + i;
+        
         if (row_to_be_searched > 0 && row_to_be_searched <= gridSize) {
+          
           for (let j = -1; j < 2; j++) {
-            let column_to_be_searched = current_column + j;
+            let column_to_be_searched = parseInt(current_column) + j;
 
             if (
               column_to_be_searched > 0 &&
@@ -169,7 +197,9 @@ export default function Grid({ settings, setSettings }) {
                 continue;
 
               //if new path to neighbour is shorter or neighbour is not in open, set fcost
-              // if ()
+              if (!openList.includes(id_to_be_searched)) {
+                getFcost(row_to_be_searched, column_to_be_searched);
+              }
             }
           }
         }
@@ -185,7 +215,7 @@ export default function Grid({ settings, setSettings }) {
     let rowArray = [];
     for (let column = 1; column <= gridSize; column++) {
       const id = `${row}-${column}`;
-      rowArray.push(id);
+      rowArray.push(new CellObject(id));
       cells.push(
         <Cell
           key={id}
