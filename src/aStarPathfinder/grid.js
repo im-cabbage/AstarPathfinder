@@ -1,28 +1,48 @@
 import { useState } from "react";
 import Cell from "./cell";
 
-export default function Grid({ settings, setSettings }) {
+export default function Grid({ settings }) {
+  class CellObject {
+    id;
+    row;
+    width;
+    g_cost;
+    h_cost;
+    f_cost;
+    pathFromStartingNode = [];
+    parentNode;
+
+    constructor(id, g_cost, h_cost, f_cost) {
+      this.id = id;
+      this.row = id.split("-")[0];
+      this.width = id.split("-")[1];
+      this.g_cost = g_cost;
+      this.h_cost = h_cost;
+      this.f_cost = f_cost;
+    }
+  }
+
   //cellType: start, end, wall, blank, open, closed
-  let gridStructureArray = [];
+  // let gridStructureArray = [];
   const [startCell, setStartCell] = useState("");
   const [endCell, setEndCell] = useState("");
   const [wallCellArray, setWallCellArray] = useState([]);
   const gridSize = settings.gridSize;
   const cellTypeSelector = settings.cellTypeSelector;
+  const [gridStructureArray, setGridStructureArray] = useState(() => initGridStructureArray());
 
-  class CellObject {
-    id;
-    row;
-    width;
-    f_cost;
-    pathFromStartingNode = [];
-    parentNode;
 
-    constructor(id) {
-      this.id = id;
-      this.row = id.split("-")[0];
-      this.width = id.split("-")[1];
+  function initGridStructureArray() {
+    let tempGridStructureArray = [];
+    for (let row = 1; row <= gridSize; row++) {
+      let rowArray = [];
+      for (let column = 1; column <= gridSize; column++) {
+        const id = `${row}-${column}`;
+        rowArray.push(new CellObject(id));
+      }
+      tempGridStructureArray.push(rowArray);
     }
+    return tempGridStructureArray;
   }
 
   function handleChangeCellType(id) {
@@ -65,6 +85,7 @@ export default function Grid({ settings, setSettings }) {
     CLOSED cell = searched already
     */
 
+    let tempGridStructureArray;
     let openList = [];
     let closedList = [];
 
@@ -152,10 +173,34 @@ export default function Grid({ settings, setSettings }) {
       }
     }
 
-    function getFcost(row, column) {
-      console.log(`${row}-${column}  gcost: ${getGcost(row, column)} hcost: ${getHcost(row, column)} `)
-      return getGcost(row, column) + getHcost(row, column);
-      
+    function setFcost(row, column) {
+      console.log("below")
+      console.log(gridStructureArray)
+      const id = `${row}-${column}`;
+      const gCost = getGcost(row, column);
+      const hCost = getHcost(row, column);
+      const fCost = gCost + hCost;
+
+      const a = gridStructureArray.map((rowArray, rowIndex) => {
+        if (rowIndex === parseInt(row) - 1) {
+          const b = rowArray.map((cellObject, columnIndex) => {
+            if(columnIndex === parseInt(column) - 1) {
+              return new CellObject(cellObject.id, gCost, hCost, fCost);
+            } else {
+              return cellObject;
+            }
+          });
+          console.log(b)
+          return b;
+        } else {
+          return rowArray;
+        }
+      });
+      tempGridStructureArray = a; //use temporary array to store array
+      setGridStructureArray(a); //setState is very slow!!
+
+      console.log(`${id} gcost: ${gCost} hcost: ${hCost} `)
+      return fCost;
     }
 
     while (true) {
@@ -227,7 +272,8 @@ export default function Grid({ settings, setSettings }) {
               //if new path to neighbour is shorter or neighbour is not in open, set fcost
               if (!openList.includes(id_to_be_searched)) {
                 //set fcost
-                console.log(getFcost(row_to_be_searched, column_to_be_searched));
+                console.log(setFcost(row_to_be_searched, column_to_be_searched));
+                console.log(tempGridStructureArray)
               }
             }
           }
@@ -241,10 +287,9 @@ export default function Grid({ settings, setSettings }) {
 
   let cells = [];
   for (let row = 1; row <= gridSize; row++) {
-    let rowArray = [];
     for (let column = 1; column <= gridSize; column++) {
       const id = `${row}-${column}`;
-      rowArray.push(new CellObject(id));
+      const cellObject = gridStructureArray[row - 1][column - 1];
       cells.push(
         <Cell
           key={id}
@@ -256,10 +301,12 @@ export default function Grid({ settings, setSettings }) {
           startCell={startCell === id}
           endCell={endCell === id}
           wallCell={wallCellArray.includes(id)}
+          gCost={cellObject.g_cost ? cellObject.g_cost : ""}
+          hCost={cellObject.h_cost ? cellObject.h_cost : ""}
+          fCost={cellObject.f_cost ? cellObject.f_cost : ""}
         />
       );
     }
-    gridStructureArray.push(rowArray);
   }
 
   console.log(gridStructureArray);

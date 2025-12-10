@@ -88,7 +88,7 @@ export default function SettingsPanel() {
           </div>
         </div>
       </div>
-      <Grid settings={settings} setSettings={setSettings} />
+      <Grid settings={settings}/>
     </>
   );
 }
