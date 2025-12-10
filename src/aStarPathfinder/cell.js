@@ -7,6 +7,10 @@ export default function Cell({
   startCell,
   endCell,
   wallCell,
+  gCost,
+  hCost,
+  fCost,
+  parent
 }) {
   const id = `${row}-${column}`;
   let classNames = `cell row-${row} column-${column}`;
@@ -32,6 +36,10 @@ export default function Cell({
       }}
     >
       {id}
+      <div className="gCost">{gCost}</div>
+      <div className="hCost">{hCost}</div>
+      <div className="fCost">{fCost}</div>
+      <div className="parent">{parent}</div>
     </div>
   );
 }

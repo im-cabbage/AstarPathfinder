@@ -81,24 +81,46 @@ export default function Grid({ settings, setSettings }) {
     //path is an array of parentIDs
     function getGcost(row, column) {
       // G cost: distance from starting node using path array
+      
       const pathFromStartingNode = gridStructureArray[row - 1][column - 1].pathFromStartingNode;
-      if (pathFromStartingNode.length === 0) {
-        if (row === startNodeRow || column === startNodeColumn) {
+      //starting node immediate child
+      if (pathFromStartingNode.length === 0) { 
+        //straight
+        if (row === startNodeRow || column === startNodeColumn) { 
           return 10;
+          //diagonal
+        } else { 
+          return 14;
         }
+        //path array not empty
       } else {
-        return pathFromStartingNode.reduce((totalPathCost, currentNodeId, currentNodeIndex) => {
-          let childNode;
+        return pathFromStartingNode.reduceRight((totalPathCost, currentNodeId, currentNodeIndex) => {
+          //get row n col of parent
+          //straight or diagonal
 
-          if (currentNodeIndex !== 0) {
-            childNode = pathFromStartingNode[currentNodeIndex + 1];
-            return false
-          } else { //if first child
-            let row = currentNodeId.split("-")[0];
-            let column = currentNodeId.split("-")[1];
+          let currentNodeRow = currentNodeId.split("-")[0];
+          let currentNodecolumn = currentNodeId.split("-")[1];
 
-            if (row === startNodeRow || column === startNodeColumn) {
+          let parentNode;
+
+          //if first child node after starting node
+          if (currentNodeIndex === 0) {
+            if (currentNodeRow === startNodeRow || currentNodecolumn === startNodeColumn) { 
               return totalPathCost + 10;
+              //diagonal
+            } else { 
+              return totalPathCost + 14;
+            }
+          } else { //
+            parentNode = pathFromStartingNode[currentNodeIndex - 1];
+            const parentNodeRow = parentNode.split("-")[0];
+            const parentNodeColumn = parentNode.split("-")[1];
+            
+            if (currentNodeRow === parentNodeRow || currentNodecolumn === parentNodeColumn) { 
+              return totalPathCost + 10;
+              //diagonal
+            } else { 
+              return totalPathCost + 14;
             }
           }
         }, 0)
@@ -131,7 +153,9 @@ export default function Grid({ settings, setSettings }) {
     }
 
     function getFcost(row, column) {
+      console.log(`${row}-${column}  gcost: ${getGcost(row, column)} hcost: ${getHcost(row, column)} `)
       return getGcost(row, column) + getHcost(row, column);
+      
     }
 
     while (true) {
@@ -154,16 +178,17 @@ export default function Grid({ settings, setSettings }) {
         }
         currentNode = openList[index_min_f_cost];
         indexOfCurrentNode = index_min_f_cost;
-        console.log(currentNode);
       } else {
         currentNode = openList[0];
-        console.log(currentNode)
       }
 
       closedList.push(openList[indexOfCurrentNode]);
       openList.splice(indexOfCurrentNode, 1);
+      console.log("closedList");
       console.log(closedList);
+      console.log("openList")
       console.log(openList)
+      console.log("currentNode");
       console.log(currentNode);
 
       //if end node is found
@@ -183,13 +208,16 @@ export default function Grid({ settings, setSettings }) {
           
           for (let j = -1; j < 2; j++) {
             let column_to_be_searched = parseInt(current_column) + j;
+            let id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+            if (id_to_be_searched === startNodeID) continue;
 
             if (
               column_to_be_searched > 0 &&
               column_to_be_searched <= gridSize
             ) {
-              let id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
 
+              //skip if neighbour is a wall or is in closed list
               if (
                 wallCellArray.includes(id_to_be_searched) ||
                 closedList.includes(id_to_be_searched)
@@ -198,13 +226,14 @@ export default function Grid({ settings, setSettings }) {
 
               //if new path to neighbour is shorter or neighbour is not in open, set fcost
               if (!openList.includes(id_to_be_searched)) {
-                getFcost(row_to_be_searched, column_to_be_searched);
+                //set fcost
+                console.log(getFcost(row_to_be_searched, column_to_be_searched));
               }
             }
           }
         }
       }
-      console.log(id_of_neighbour_nodes);
+      // console.log(id_of_neighbour_nodes);
 
       break;
     }
