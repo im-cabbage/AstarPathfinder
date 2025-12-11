@@ -26,3 +26,11 @@
 .wall {
     background-color: rgb(0, 0, 0);
 }
+
+.open {
+    background-color: rgb(255, 255, 92);
+}
+
+.closed {
+    background-color: rgb(161, 161, 161);
+}
