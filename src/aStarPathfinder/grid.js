@@ -99,11 +99,13 @@ export default function Grid({ settings }) {
 
     openList.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
 
-    //path is an array of parentIDs
-    function getGcost(row, column) {
+    
+    //need to fix! temp not updated yet when called!
+    function getGcost(row, column) {//path is an array of parentIDs
       // G cost: distance from starting node using path array
       
-      const pathFromStartingNode = gridStructureArray[row - 1][column - 1].pathFromStartingNode;
+      const pathFromStartingNode = tempGridStructureArray[row - 1][column - 1].pathFromStartingNode;
+
       //path array empty / starting node immediate child
       if (pathFromStartingNode.length === 0) { 
         //straight
@@ -173,7 +175,7 @@ export default function Grid({ settings }) {
       }
     }
 
-    function setFcost(row, column, currentNodeId) {
+    function setFcost(row, column, currentNodeId) { //set f_cost for neighbour
       const id = `${row}-${column}`;
       const gCost = getGcost(row, column);
       const hCost = getHcost(row, column);
@@ -184,10 +186,13 @@ export default function Grid({ settings }) {
           const newRowArray = rowArray.map((cellObject, columnIndex) => {
             if(columnIndex === parseInt(column) - 1) {
               let newCellObject = new CellObject(cellObject.id, gCost, hCost, fCost);
-
+              const currentNodeRow = parseInt(currentNodeId.split("-")[0]);
+              const currentNodeColumn = parseInt(currentNodeId.split("-")[1]);
+              const currentNodePathFromStartingNode = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].pathFromStartingNode;
+              
               //add currentNode as parent in pathFromStartingNode array
               if (currentNodeId !== startNodeID) {
-                newCellObject.pathFromStartingNode = [...cellObject.pathFromStartingNode, currentNodeId];
+                newCellObject.pathFromStartingNode = [...currentNodePathFromStartingNode, currentNodeId];
               }
               
               return newCellObject;
@@ -227,12 +232,15 @@ export default function Grid({ settings }) {
           }
         }
         currentNode = openList[index_min_f_cost];
+        console.log(currentNode)
         indexOfCurrentNode = index_min_f_cost;
       } else {
         currentNode = openList[0];
       }
 
       closedList.push(openList[indexOfCurrentNode]);
+      document.getElementById(openList[indexOfCurrentNode].id).classList.remove("open"); //remove open class
+      document.getElementById(openList[indexOfCurrentNode].id).classList.add("closed"); //add closed class
       openList.splice(indexOfCurrentNode, 1);
       console.log("closedList");
       console.log(closedList);
@@ -269,13 +277,13 @@ export default function Grid({ settings }) {
               //skip if neighbour is a wall or is in closed list
               if (
                 wallCellArray.includes(id_to_be_searched) ||
-                closedList.includes(id_to_be_searched)
+                closedList.some(cellObject => cellObject.id === id_to_be_searched)
               )
                 continue;
 
               //if new path to neighbour is shorter 
               // or neighbour is not in open, set fcost
-              if (!openList.includes(id_to_be_searched)) {
+              if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
                 //set fcost
                 console.log(setFcost(row_to_be_searched, column_to_be_searched, currentNode.id));
 
@@ -289,6 +297,7 @@ export default function Grid({ settings }) {
                 if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
                   // add neighbour to open
                   openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                  document.getElementById(`${row_to_be_searched}-${column_to_be_searched}`).classList.add("open");
                   console.log(openList);
                 }
                 
