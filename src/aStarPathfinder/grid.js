@@ -85,7 +85,11 @@ export default function Grid({ settings }) {
     CLOSED cell = searched already
     */
 
-    let tempGridStructureArray = gridStructureArray; //only references the object, still can be mutated!
+    // spread syntax to create a copy of the original array first
+    // However, even if you copy an array, you can’t mutate existing items inside of it directly. 
+    // This is because copying is shallow— the new array will contain the same items as the original one. 
+    // So if you modify an object inside the copied array, you are mutating the existing state.
+    let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
     let openList = [];
     let closedList = [];
 
@@ -181,6 +185,8 @@ export default function Grid({ settings }) {
 
     function setFcost(row, column, currentNodeId) { //set f_cost for neighbour
       const id = `${row}-${column}`;
+
+      //need to refactor, When updating nested state, you need to create copies from the point where you want to update, and all the way up to the top level
 
       //set pathFromStartingNode for node before calling getGcost func
       const [ parentRow, parentColumn ] = currentNodeId.split("-");
