@@ -10,7 +10,7 @@ export default function Cell({
   gCost,
   hCost,
   fCost,
-  parent
+  open
 }) {
   const id = `${row}-${column}`;
   let classNames = `cell row-${row} column-${column}`;
@@ -39,7 +39,6 @@ export default function Cell({
       <div className="gCost">{gCost}</div>
       <div className="hCost">{hCost}</div>
       <div className="fCost">{fCost}</div>
-      <div className="parent">{parent}</div>
     </div>
   );
 }

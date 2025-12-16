@@ -9,7 +9,7 @@ export default function Grid({ settings }) {
     g_cost;
     h_cost;
     f_cost;
-    pathFromStartingNode = [];
+    pathFromStartingNode = []; // contains IDs of all child nodes
     parentNode;
 
     constructor(id, g_cost, h_cost, f_cost) {
@@ -85,7 +85,7 @@ export default function Grid({ settings }) {
     CLOSED cell = searched already
     */
 
-    let tempGridStructureArray = gridStructureArray;
+    let tempGridStructureArray = gridStructureArray; //only references the object, still can be mutated!
     let openList = [];
     let closedList = [];
 
@@ -100,22 +100,18 @@ export default function Grid({ settings }) {
     openList.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
 
     
-    //need to fix! temp not updated yet when called!
+
     function getGcost(row, column) {//path is an array of parentIDs
       // G cost: distance from starting node using path array
       
       const pathFromStartingNode = tempGridStructureArray[row - 1][column - 1].pathFromStartingNode;
-
-      //path array empty / starting node immediate child
-      if (pathFromStartingNode.length === 0) { 
-        //straight
-        if (row === startNodeRow || column === startNodeColumn) { 
+      
+      if (pathFromStartingNode.length === 1) { //only contains startNode
+        if (row == startNodeRow || column == startNodeColumn) { //straight
           return 10;
-          //diagonal
-        } else { 
+        } else { //diagonal
           return 14;
         }
-      //path array not empty
       } else {
         return pathFromStartingNode.reduceRight((totalPathCost, currentNodeId, currentNodeIndex) => {
           //get row n col of parent
@@ -125,25 +121,33 @@ export default function Grid({ settings }) {
           let currentNodecolumn = currentNodeId.split("-")[1];
 
           let parentNode;
-
-          //if first child node after starting node
-          if (currentNodeIndex === 0) {
-            if (currentNodeRow === startNodeRow || currentNodecolumn === startNodeColumn) { 
-              return totalPathCost + 10;
-              //diagonal
-            } else { 
-              return totalPathCost + 14;
-            }
-          } else { 
+          
+          if (currentNodeId === startNodeID) { //skip if startCell
+            return totalPathCost 
+          } else {
             parentNode = pathFromStartingNode[currentNodeIndex - 1];
-            const parentNodeRow = parentNode.split("-")[0];
-            const parentNodeColumn = parentNode.split("-")[1];
-            
-            if (currentNodeRow === parentNodeRow || currentNodecolumn === parentNodeColumn) { 
-              return totalPathCost + 10;
-              //diagonal
-            } else { 
-              return totalPathCost + 14;
+            const [ parentNodeRow, parentNodeColumn] = parentNode.split("-");
+
+            if (currentNodeIndex === pathFromStartingNode.length - 1) { //if last index, calculate distance from current neighbour to currentNode
+              if (row == currentNodeRow || column == currentNodecolumn) { //current neighbour to currentNode is straight, +10
+                if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
+                  return totalPathCost + 10 + 10;
+                } else { //diagonal
+                  return totalPathCost + 14 + 10;
+                }
+              } else { //current neighbour to currentNode is diagonal, +14
+                if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
+                  return totalPathCost + 10 + 14;
+                } else { //diagonal
+                  return totalPathCost + 14 + 14;
+                }
+              }
+            } else {
+              if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
+                return totalPathCost + 10;
+              } else { //diagonal
+                return totalPathCost + 14;
+              }
             }
           }
         }, 0)
@@ -177,37 +181,19 @@ export default function Grid({ settings }) {
 
     function setFcost(row, column, currentNodeId) { //set f_cost for neighbour
       const id = `${row}-${column}`;
+
+      //set pathFromStartingNode for node before calling getGcost func
+      const [ parentRow, parentColumn ] = currentNodeId.split("-");
+      const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+      tempGridStructureArray[row - 1][column - 1].pathFromStartingNode = [...parentNodePathFromStartingNode, currentNodeId];
+
       const gCost = getGcost(row, column);
       const hCost = getHcost(row, column);
       const fCost = gCost + hCost;
 
-      const newGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {
-        if (rowIndex === parseInt(row) - 1) {
-          const newRowArray = rowArray.map((cellObject, columnIndex) => {
-            if(columnIndex === parseInt(column) - 1) {
-              let newCellObject = new CellObject(cellObject.id, gCost, hCost, fCost);
-              const currentNodeRow = parseInt(currentNodeId.split("-")[0]);
-              const currentNodeColumn = parseInt(currentNodeId.split("-")[1]);
-              const currentNodePathFromStartingNode = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].pathFromStartingNode;
-              
-              //add currentNode as parent in pathFromStartingNode array
-              if (currentNodeId !== startNodeID) {
-                newCellObject.pathFromStartingNode = [...currentNodePathFromStartingNode, currentNodeId];
-              }
-              
-              return newCellObject;
-            } else {
-              return cellObject;
-            }
-          });
-          return newRowArray;
-        } else {
-          return rowArray;
-        }
-      });
-      
-      setGridStructureArray(newGridStructureArray); //setState is very slow!!
-      tempGridStructureArray = newGridStructureArray; //use temporary array to store array to be used instead of gridStructureArray
+      tempGridStructureArray[row - 1][column - 1].g_cost = gCost;
+      tempGridStructureArray[row - 1][column - 1].h_cost = hCost;
+      tempGridStructureArray[row - 1][column - 1].f_cost = fCost;
 
       console.log(`${id} gcost: ${gCost} hcost: ${hCost} `)
       return fCost;
@@ -251,6 +237,8 @@ export default function Grid({ settings }) {
 
       //if end node is found
       if (currentNode.id === endNodeID) {
+        console.log("found end")
+        setGridStructureArray(tempGridStructureArray);
         break;
       }
 
@@ -309,6 +297,12 @@ export default function Grid({ settings }) {
     }
   }
 
+  function startSearchIterative() { // stop after every step
+
+  }
+
+  console.log(gridStructureArray);
+
   let cells = [];
   for (let row = 1; row <= gridSize; row++) {
     for (let column = 1; column <= gridSize; column++) {
@@ -328,12 +322,11 @@ export default function Grid({ settings }) {
           gCost={cellObject.g_cost ? cellObject.g_cost : ""}
           hCost={cellObject.h_cost ? cellObject.h_cost : ""}
           fCost={cellObject.f_cost ? cellObject.f_cost : ""}
+          open={""}
         />
       );
     }
   }
-
-  console.log(gridStructureArray);
 
   return (
     <>
