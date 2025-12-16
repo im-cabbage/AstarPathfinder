@@ -1,6 +1,12 @@
 # Notes
 
-iterative or fastest mode
+Features to be added :
+- working algorithm
+- reset grid button
+- highlight to draw wall
+- Dijkstra's 
+- BFS
+- DFS
 
 
 
