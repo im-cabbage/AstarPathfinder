@@ -1,4 +1,7 @@
 # Notes
+issues :
+- state mutation
+- 
 
 Features to be added :
 - working algorithm
@@ -7,6 +10,7 @@ Features to be added :
 - Dijkstra's 
 - BFS
 - DFS
+- clean up frontend
 
 
 
