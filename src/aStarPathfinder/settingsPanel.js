@@ -88,7 +88,8 @@ export default function SettingsPanel() {
           </div>
         </div>
       </div>
-      <Grid settings={settings}/>
+      {/* using key attribute on grid resets the entire grid state when gridsize changes*/}
+      <Grid key={settings.gridSize} settings={settings}/> 
     </>
   );
 }
