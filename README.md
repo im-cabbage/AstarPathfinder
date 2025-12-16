@@ -1,7 +1,8 @@
 # Notes
 issues :
 - state mutation
-- 
+- parent indicator
+- complete algorithm (walls)
 
 Features to be added :
 - working algorithm
