@@ -29,6 +29,9 @@ export default function Grid({ settings }) {
   const [wallCellArray, setWallCellArray] = useState([]);
   const gridSize = settings.gridSize;
   const cellTypeSelector = settings.cellTypeSelector;
+  const [openNodes, setOpenNodes] = useState([]);
+  const [closedNodes, setClosedNodes] = useState([]);
+  const [shortestPath, setShortestPath] = useState([]);
   const [gridStructureArray, setGridStructureArray] = useState(() => initGridStructureArray());
 
 
@@ -186,17 +189,35 @@ export default function Grid({ settings }) {
     function setFcost(row, column, currentNodeId) { //set f_cost for neighbour
       const id = `${row}-${column}`;
 
-      //need to refactor, When updating nested state, you need to create copies from the point where you want to update, and all the way up to the top level
+      const newGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {//add currentNode as parent into pathFromStartingNode before calling getGcost func
+        if (rowIndex === parseInt(row) - 1) {
+          const newRowArray = rowArray.map((cellObject, columnIndex) => {
+            if(columnIndex === parseInt(column) - 1) {
+              let newCellObject = new CellObject(cellObject.id); //create deep copy
 
-      //set pathFromStartingNode for node before calling getGcost func
-      const [ parentRow, parentColumn ] = currentNodeId.split("-");
-      const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
-      tempGridStructureArray[row - 1][column - 1].pathFromStartingNode = [...parentNodePathFromStartingNode, currentNodeId];
+              const [ parentRow, parentColumn ] = currentNodeId.split("-");
+              const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+              
+              //add currentNode as parent in pathFromStartingNode array
+              newCellObject.pathFromStartingNode = [...parentNodePathFromStartingNode, currentNodeId];
+
+              return newCellObject;
+            } else {
+              return cellObject;
+            }
+          });
+          return newRowArray;
+        } else {
+          return rowArray;
+        }
+      });
+      tempGridStructureArray = newGridStructureArray;
 
       const gCost = getGcost(row, column);
       const hCost = getHcost(row, column);
       const fCost = gCost + hCost;
 
+      //does not mutate original gridStructureArray since the child object has been replaced
       tempGridStructureArray[row - 1][column - 1].g_cost = gCost;
       tempGridStructureArray[row - 1][column - 1].h_cost = hCost;
       tempGridStructureArray[row - 1][column - 1].f_cost = fCost;
@@ -231,8 +252,6 @@ export default function Grid({ settings }) {
       }
 
       closedList.push(openList[indexOfCurrentNode]);
-      document.getElementById(openList[indexOfCurrentNode].id).classList.remove("open"); //remove open class
-      document.getElementById(openList[indexOfCurrentNode].id).classList.add("closed"); //add closed class
       openList.splice(indexOfCurrentNode, 1);
       console.log("closedList");
       console.log(closedList);
@@ -245,6 +264,8 @@ export default function Grid({ settings }) {
       if (currentNode.id === endNodeID) {
         console.log("found end")
         setGridStructureArray(tempGridStructureArray);
+        setOpenNodes(openList);
+        setClosedNodes(closedList);
         break;
       }
 
@@ -291,8 +312,6 @@ export default function Grid({ settings }) {
                 if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
                   // add neighbour to open
                   openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
-                  document.getElementById(`${row_to_be_searched}-${column_to_be_searched}`).classList.add("open");
-                  console.log(openList);
                 }
                 
               }
@@ -328,7 +347,8 @@ export default function Grid({ settings }) {
           gCost={cellObject.g_cost ? cellObject.g_cost : ""}
           hCost={cellObject.h_cost ? cellObject.h_cost : ""}
           fCost={cellObject.f_cost ? cellObject.f_cost : ""}
-          open={""}
+          open={openNodes.some(nodeObject => nodeObject.id === id)}
+          closed={closedNodes.some(nodeObject => nodeObject.id === id)}
         />
       );
     }

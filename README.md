@@ -1,6 +1,7 @@
 # Notes
 issues :
-- state mutation
+- ~~state mutation~~
+- ~~open or closed indicator~~
 - parent indicator
 - complete algorithm (walls)
 

@@ -10,7 +10,8 @@ export default function Cell({
   gCost,
   hCost,
   fCost,
-  open
+  open,
+  closed
 }) {
   const id = `${row}-${column}`;
   let classNames = `cell row-${row} column-${column}`;
@@ -23,6 +24,12 @@ export default function Cell({
   }
   if (wallCell) {
     classNames += " wall";
+  }
+  if (open) {
+    classNames += " open";
+  }
+  if (closed) {
+    classNames += " closed";
   }
 
   return (
