@@ -2,8 +2,9 @@
 issues :
 - ~~state mutation~~
 - ~~open or closed indicator~~
+- ~~shortest path indicator~~
 - parent indicator
-- complete algorithm (walls)
+- complete algorithm (diagonal walls)
 
 Features to be added :
 - working algorithm

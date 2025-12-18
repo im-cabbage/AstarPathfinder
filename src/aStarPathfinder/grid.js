@@ -108,10 +108,23 @@ export default function Grid({ settings }) {
 
     
 
-    function getGcost(row, column) {//path is an array of parentIDs
+    function getGcost(row, column, currentNodeId) {//path is an array of parentIDs
       // G cost: distance from starting node using path array
       
-      const pathFromStartingNode = tempGridStructureArray[row - 1][column - 1].pathFromStartingNode;
+      let pathFromStartingNode = [...tempGridStructureArray[row - 1][column - 1].pathFromStartingNode]; //create shallow copy to avoid mutation
+//if new path to neighbour is shorter
+//use parents path
+      const parentNode = pathFromStartingNode[pathFromStartingNode.length - 1];
+      
+      if (parentNode !== currentNodeId) {  console.log(currentNodeId, row, column)
+        const [currentNodeRow, currentNodeColumn] = currentNodeId.split("-");
+        const currentNodePathFromStartingNode = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].pathFromStartingNode;
+        pathFromStartingNode = [...currentNodePathFromStartingNode, currentNodeId];
+        console.log(pathFromStartingNode)
+        // console.log(pathFromStartingNode, currentNodeId);
+        // pathFromStartingNode[pathFromStartingNode.length - 1] = currentNodeId;
+        // console.log(pathFromStartingNode);
+      }
       
       if (pathFromStartingNode.length === 1) { //only contains startNode
         if (row == startNodeRow || column == startNodeColumn) { //straight
@@ -186,6 +199,10 @@ export default function Grid({ settings }) {
       }
     }
 
+    function getFcost(row, column, currentNodeId) {
+      return getGcost(row, column, currentNodeId) + getHcost(row, column);
+    }
+
     function setFcost(row, column, currentNodeId) { //set f_cost for neighbour
       const id = `${row}-${column}`;
 
@@ -213,7 +230,7 @@ export default function Grid({ settings }) {
       });
       tempGridStructureArray = newGridStructureArray;
 
-      const gCost = getGcost(row, column);
+      const gCost = getGcost(row, column, currentNodeId);
       const hCost = getHcost(row, column);
       const fCost = gCost + hCost;
 
@@ -234,20 +251,29 @@ export default function Grid({ settings }) {
       if (openList.length > 1) {
         // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
         let min_f_cost = openList[0].f_cost;
+        let min_h_cost = openList[0].h_cost;
         let index_min_f_cost = 0;
 
         for (let i = 0; i < openList.length; i++) {
           let current_f_cost = openList[i].f_cost;
+          let current_h_cost = openList[i].h_cost;
 
           if (current_f_cost < min_f_cost) {
             min_f_cost = current_f_cost;
+            min_h_cost = current_h_cost;
             index_min_f_cost = i;
+          } else if (current_f_cost === min_f_cost) {
+            if (current_h_cost < min_h_cost) { //if same fCost, find lower hCost
+              min_h_cost = current_h_cost;
+              index_min_f_cost = i;
+            }
+
           }
         }
         currentNode = openList[index_min_f_cost];
         console.log(currentNode)
         indexOfCurrentNode = index_min_f_cost;
-      } else {
+      } else { //at startNode
         currentNode = openList[0];
       }
 
@@ -262,10 +288,12 @@ export default function Grid({ settings }) {
 
       //if end node is found
       if (currentNode.id === endNodeID) {
-        console.log("found end")
+        const [endNodeRow, endNodeColumn] = endNodeID.split("-");
+        
         setGridStructureArray(tempGridStructureArray);
         setOpenNodes(openList);
         setClosedNodes(closedList);
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
         break;
       }
 
@@ -297,21 +325,25 @@ export default function Grid({ settings }) {
                 continue;
 
               //if new path to neighbour is shorter 
+              const newFCost = getFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
+              console.log(newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost)
               // or neighbour is not in open, set fcost
-              if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
+              if (
+                !openList.some(cellObject => cellObject.id === id_to_be_searched) || 
+                newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost
+              ) {
                 //set fcost
                 console.log(setFcost(row_to_be_searched, column_to_be_searched, currentNode.id));
 
-
                 //set parent of neighbour to current
-
-
 
 
                 //if neighbour is not in open
                 if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
                   // add neighbour to open
                   openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                } else { //update cellObject in openList if new path to neighbour is shorter
+                  openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
                 }
                 
               }
@@ -324,6 +356,19 @@ export default function Grid({ settings }) {
 
   function startSearchIterative() { // stop after every step
 
+  }
+
+  function findParentIndicator(row, column) {
+    const pathFromStartingNode = gridStructureArray[row - 1][column - 1].pathFromStartingNode;
+    const immediateParent = pathFromStartingNode[pathFromStartingNode.length - 1];
+
+    switch(immediateParent) {
+      case `${row-1}-${column}`:
+        return "";
+
+      default:
+        return undefined;
+    }
   }
 
   console.log(gridStructureArray);
@@ -349,6 +394,8 @@ export default function Grid({ settings }) {
           fCost={cellObject.f_cost ? cellObject.f_cost : ""}
           open={openNodes.some(nodeObject => nodeObject.id === id)}
           closed={closedNodes.some(nodeObject => nodeObject.id === id)}
+          shortestPath={shortestPath.includes(id)}
+          parentIndicator={() => findParentIndicator(row, column)}
         />
       );
     }

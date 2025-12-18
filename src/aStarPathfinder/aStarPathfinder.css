@@ -23,10 +23,6 @@
     background-color: rgb(161, 161, 161);
 }
 
-.start {
-    background-color: greenyellow;
-}
-
 .end {
     background-color: rgb(220, 66, 0);
 }
@@ -35,3 +31,53 @@
     background-color: rgb(0, 0, 0);
 }
 
+.shortestPath {
+    background-color: rgb(0, 255, 234);
+}
+
+.start {
+    background-color: greenyellow;
+}
+
+.parentIndicator {
+  border: solid black;
+  border-width: 0 3px 3px 0;
+  display: inline-block;
+  padding: 3px;
+}
+
+.parentIndicator.topLeft {
+    transform: rotate(-180deg);
+}
+
+.parentIndicator.top {
+    transform: rotate(-135deg);
+}
+
+.parentIndicator.topRight {
+    transform: rotate(-90deg);
+}
+
+.parentIndicator.right {
+    transform: rotate(-45deg);
+}
+
+.parentIndicator.bottomRight {
+    transform: rotate(0deg);
+}
+
+.parentIndicator.bottom {
+    transform: rotate(45deg);
+}
+
+.parentIndicator.bottomLeft {
+    transform: rotate(90deg);
+}
+
+.parentIndicator.left {
+    transform: rotate(135deg);
+}
+
+.hidden {
+    display: none;
+}
