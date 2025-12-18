@@ -10,6 +10,9 @@ Features to be added :
 - working algorithm
 - reset grid button
 - highlight to draw wall
+- ctrl + lclick = start
+- shift + lclick = end
+- step by step function (iteration)
 - Dijkstra's 
 - BFS
 - DFS
