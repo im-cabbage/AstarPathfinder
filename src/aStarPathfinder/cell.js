@@ -4,6 +4,7 @@ export default function Cell({
   row,
   column,
   handleChangeCellType,
+  handleDrawWall,
   startCell,
   endCell,
   wallCell,
@@ -53,6 +54,11 @@ export default function Cell({
       data-column={column}
       onClick={(e) => {
         handleChangeCellType(e, id);
+      }}
+      onMouseOver={(e)=>{
+        if (e.ctrlKey) {
+          handleDrawWall(e, id);
+        }
       }}
     >
       {id}

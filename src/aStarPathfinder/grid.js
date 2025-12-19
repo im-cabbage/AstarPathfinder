@@ -49,13 +49,13 @@ export default function Grid({ settings }) {
   }
 
   function handleChangeCellType(e, id) {
-    if (e.ctrlKey) { //ctrl + lclick = add start node
+    if (e.ctrlKey && e.type === "click") { //ctrl + lclick = add start node
       if (endCell === id) setEndCell("");
       if (wallCellArray.includes(id)) {
         setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
       }
       setStartCell(id);
-    } else if (e.altKey) { //alt + lclick = add end node
+    } else if (e.altKey && e.type === "click") { //alt + lclick = add end node
       if (startCell === id) setStartCell("");
       if (wallCellArray.includes(id)) {
         setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
@@ -90,6 +90,14 @@ export default function Grid({ settings }) {
         default:
           break;
       }
+    }
+  }
+
+  function handleDrawWall(e, id) {
+    if (cellTypeSelector === "wall") {
+      if (startCell === id) setStartCell("");
+      if (endCell === id) setEndCell("");
+      setWallCellArray([...wallCellArray, id]);
     }
   }
 
@@ -453,6 +461,9 @@ export default function Grid({ settings }) {
           column={column}
           handleChangeCellType={(e, id) => {
             handleChangeCellType(e, id);
+          }}
+          handleDrawWall={(e, id) => {
+            handleDrawWall(e, id);
           }}
           startCell={startCell === id}
           endCell={endCell === id}

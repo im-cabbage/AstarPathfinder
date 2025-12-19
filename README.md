@@ -5,19 +5,19 @@ working on :
 - ~~shortest path indicator~~
 - ~~parent indicator~~
 - ~~no crossing diagonal walls~~
-- highlight to draw wall
-- ctrl + lclick = start
-- shift + lclick = end
+- ~~ctrl + lclick = start~~
+- ~~alt + lclick = end~~
+- save grid design to localstorage
 - reset grid button
+- create random maze
 - step by step function (iteration)
 
-Features to be added :
 
+Features to be added :
+- highlight to draw wall (left click down + drag over cells)
 - Dijkstra's 
 - BFS
 - DFS
-- create random maze
-- save grid design
 - clean up frontend
 - legend table
 
