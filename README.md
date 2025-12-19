@@ -19,6 +19,7 @@ Features to be added :
 - create random maze
 - save grid design
 - clean up frontend
+- legend table
 
 
 
