@@ -16,6 +16,8 @@ Features to be added :
 - Dijkstra's 
 - BFS
 - DFS
+- create random maze
+- save grid design
 - clean up frontend
 
 
