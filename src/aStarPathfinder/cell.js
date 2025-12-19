@@ -12,7 +12,8 @@ export default function Cell({
   fCost,
   open,
   closed,
-  shortestPath
+  shortestPath,
+  parentIndicator
 }) {
   const id = `${row}-${column}`;
   let classNames = `cell row-${row} column-${column}`;
@@ -36,6 +37,14 @@ export default function Cell({
     classNames += " shortestPath";
   }
 
+  let parentIndicatorClassNames = `parentIndicator`;
+  if (parentIndicator) {
+    parentIndicatorClassNames += ` ${parentIndicator}`;
+  } else {
+    parentIndicatorClassNames += " hidden";
+  }
+
+
   return (
     <div
       id={id}
@@ -47,7 +56,7 @@ export default function Cell({
       }}
     >
       {id}
-      <div className="parentIndicator left"></div>
+      <div className={parentIndicatorClassNames}></div>
       <div className="gCost">{gCost}</div>
       <div className="hCost">{hCost}</div>
       <div className="fCost">{fCost}</div>

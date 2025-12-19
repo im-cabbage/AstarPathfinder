@@ -108,22 +108,18 @@ export default function Grid({ settings }) {
 
     
 
-    function getGcost(row, column, currentNodeId) {//path is an array of parentIDs
+    function getGcost(row, column, currentNodeId) {
+      //path is an array of parentIDs
       // G cost: distance from starting node using path array
-      
+
+      //if new path to neighbour is shorter, use parents path
       let pathFromStartingNode = [...tempGridStructureArray[row - 1][column - 1].pathFromStartingNode]; //create shallow copy to avoid mutation
-//if new path to neighbour is shorter
-//use parents path
       const parentNode = pathFromStartingNode[pathFromStartingNode.length - 1];
       
-      if (parentNode !== currentNodeId) {  console.log(currentNodeId, row, column)
+      if (parentNode !== currentNodeId) {
         const [currentNodeRow, currentNodeColumn] = currentNodeId.split("-");
         const currentNodePathFromStartingNode = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].pathFromStartingNode;
         pathFromStartingNode = [...currentNodePathFromStartingNode, currentNodeId];
-        console.log(pathFromStartingNode)
-        // console.log(pathFromStartingNode, currentNodeId);
-        // pathFromStartingNode[pathFromStartingNode.length - 1] = currentNodeId;
-        // console.log(pathFromStartingNode);
       }
       
       if (pathFromStartingNode.length === 1) { //only contains startNode
@@ -135,7 +131,7 @@ export default function Grid({ settings }) {
       } else {
         return pathFromStartingNode.reduceRight((totalPathCost, currentNodeId, currentNodeIndex) => {
           //get row n col of parent
-          //straight or diagonal
+          //straight or diagonal?
 
           let currentNodeRow = currentNodeId.split("-")[0];
           let currentNodecolumn = currentNodeId.split("-")[1];
@@ -178,10 +174,11 @@ export default function Grid({ settings }) {
       const columnDifference = Math.abs(endNodeColumn - column);
       const rowDifference = Math.abs(endNodeRow - row);
 
-      //if same row / column
+      //if same row
       if (row == endNodeRow) {
         return 10 * Math.abs(endNodeColumn - column);
       }
+      //if same column
       if (column == endNodeColumn) {
         return 10 * Math.abs(endNodeRow - row);
       }
@@ -239,7 +236,6 @@ export default function Grid({ settings }) {
       tempGridStructureArray[row - 1][column - 1].h_cost = hCost;
       tempGridStructureArray[row - 1][column - 1].f_cost = fCost;
 
-      console.log(`${id} gcost: ${gCost} hcost: ${hCost} `)
       return fCost;
     }
 
@@ -271,7 +267,6 @@ export default function Grid({ settings }) {
           }
         }
         currentNode = openList[index_min_f_cost];
-        console.log(currentNode)
         indexOfCurrentNode = index_min_f_cost;
       } else { //at startNode
         currentNode = openList[0];
@@ -279,12 +274,13 @@ export default function Grid({ settings }) {
 
       closedList.push(openList[indexOfCurrentNode]);
       openList.splice(indexOfCurrentNode, 1);
-      console.log("closedList");
-      console.log(closedList);
-      console.log("openList")
-      console.log(openList)
-      console.log("currentNode");
-      console.log(currentNode);
+
+      //if no possible path to endNode
+      if (!currentNode) {
+        setGridStructureArray(tempGridStructureArray);
+        console.log("Not possible to reach end Node")
+        break;
+      }
 
       //if end node is found
       if (currentNode.id === endNodeID) {
@@ -297,6 +293,7 @@ export default function Grid({ settings }) {
         break;
       }
 
+      
       const current_row = currentNode.id.split("-")[0];
       const current_column = currentNode.id.split("-")[1];
 
@@ -326,14 +323,13 @@ export default function Grid({ settings }) {
 
               //if new path to neighbour is shorter 
               const newFCost = getFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
-              console.log(newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost)
               // or neighbour is not in open, set fcost
               if (
                 !openList.some(cellObject => cellObject.id === id_to_be_searched) || 
                 newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost
               ) {
                 //set fcost
-                console.log(setFcost(row_to_be_searched, column_to_be_searched, currentNode.id));
+                setFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
 
                 //set parent of neighbour to current
 
@@ -362,9 +358,24 @@ export default function Grid({ settings }) {
     const pathFromStartingNode = gridStructureArray[row - 1][column - 1].pathFromStartingNode;
     const immediateParent = pathFromStartingNode[pathFromStartingNode.length - 1];
 
+    // parent is top left - bottom right
     switch(immediateParent) {
+      case `${row-1}-${column-1}`:
+        return "topLeft";
       case `${row-1}-${column}`:
-        return "";
+        return "top";
+      case `${row-1}-${column+1}`:
+        return "topRight";
+      case `${row}-${column+1}`:
+        return "right";
+      case `${row+1}-${column+1}`:
+        return "bottomRight";
+      case `${row+1}-${column}`:
+        return "bottom";
+      case `${row+1}-${column-1}`:
+        return "bottomLeft";
+      case `${row}-${column-1}`:
+        return "left";
 
       default:
         return undefined;
@@ -395,7 +406,7 @@ export default function Grid({ settings }) {
           open={openNodes.some(nodeObject => nodeObject.id === id)}
           closed={closedNodes.some(nodeObject => nodeObject.id === id)}
           shortestPath={shortestPath.includes(id)}
-          parentIndicator={() => findParentIndicator(row, column)}
+          parentIndicator={findParentIndicator(row, column)}
         />
       );
     }

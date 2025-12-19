@@ -1,5 +1,5 @@
 # Notes
-issues :
+working on :
 - ~~state mutation~~
 - ~~open or closed indicator~~
 - ~~shortest path indicator~~
