@@ -239,6 +239,46 @@ export default function Grid({ settings }) {
       return fCost;
     }
 
+    function isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, searchedRow, searchedColumn) {
+      //can only be opposite diagonal wall if neighbour is a corner node
+      if (row_to_be_searched == current_row || column_to_be_searched == current_column) { // if not corner node, return false
+        return false;
+      } else { // if corner node
+        current_row = parseInt(current_row);
+        current_column = parseInt(current_column);
+
+        if (searchedRow === -1 && searchedColumn === -1) { //if top left
+          if (wallCellArray.includes(`${current_row - 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column - 1}`)) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+        if (searchedRow === -1 && searchedColumn === 1) { //if top right
+          if (wallCellArray.includes(`${current_row - 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column + 1}`)) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+        if (searchedRow === 1 && searchedColumn === 1) { //if bottom right
+          console.log(`${current_row + 1}-${current_column}`)
+          if (wallCellArray.includes(`${current_row + 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column + 1}`)) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+        if (searchedRow === 1 && searchedColumn === -1) { //if bottom left
+          if (wallCellArray.includes(`${current_row + 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column - 1}`)) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+      }
+    }
+
     while (true) {
       let currentNode;
       var indexOfCurrentNode = 0;
@@ -293,7 +333,7 @@ export default function Grid({ settings }) {
         break;
       }
 
-      
+
       const current_row = currentNode.id.split("-")[0];
       const current_column = currentNode.id.split("-")[1];
 
@@ -314,10 +354,13 @@ export default function Grid({ settings }) {
               column_to_be_searched <= gridSize
             ) {
 
-              //skip if neighbour is a wall or is in closed list
+              //skip if neighbour is a wall or 
+              //is in closed list or
+              //is Opposite Diagonal Wall
               if (
                 wallCellArray.includes(id_to_be_searched) ||
-                closedList.some(cellObject => cellObject.id === id_to_be_searched)
+                closedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+                isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, i, j)
               )
                 continue;
 

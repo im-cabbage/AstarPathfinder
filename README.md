@@ -3,7 +3,7 @@ working on :
 - ~~state mutation~~
 - ~~open or closed indicator~~
 - ~~shortest path indicator~~
-- parent indicator
+- ~~parent indicator~~
 - complete algorithm (diagonal walls)
 
 Features to be added :
