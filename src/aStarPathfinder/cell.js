@@ -51,8 +51,8 @@ export default function Cell({
       className={classNames}
       data-row={row}
       data-column={column}
-      onClick={() => {
-        handleChangeCellType(id);
+      onClick={(e) => {
+        handleChangeCellType(e, id);
       }}
     >
       {id}

@@ -48,34 +48,48 @@ export default function Grid({ settings }) {
     return tempGridStructureArray;
   }
 
-  function handleChangeCellType(id) {
-    switch (cellTypeSelector) {
-      case "start":
-        if (endCell === id) setEndCell("");
-        if (wallCellArray.includes(id)) {
-          setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
-        }
-        setStartCell(id);
-        break;
-      case "end":
-        if (startCell === id) setStartCell("");
-        if (wallCellArray.includes(id)) {
-          setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
-        }
-        setEndCell(id);
-        break;
-      case "wall":
-        if (wallCellArray.includes(id)) {
-          setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
-        } else {
-          if (startCell === id) setStartCell("");
+  function handleChangeCellType(e, id) {
+    if (e.ctrlKey) { //ctrl + lclick = add start node
+      if (endCell === id) setEndCell("");
+      if (wallCellArray.includes(id)) {
+        setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+      }
+      setStartCell(id);
+    } else if (e.altKey) { //alt + lclick = add end node
+      if (startCell === id) setStartCell("");
+      if (wallCellArray.includes(id)) {
+        setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+      }
+      setEndCell(id);
+    } else {
+      switch (cellTypeSelector) {
+        case "start":
           if (endCell === id) setEndCell("");
-          setWallCellArray([...wallCellArray, id]);
-        }
-        break;
+          if (wallCellArray.includes(id)) {
+            setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+          }
+          setStartCell(id);
+          break;
+        case "end":
+          if (startCell === id) setStartCell("");
+          if (wallCellArray.includes(id)) {
+            setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+          }
+          setEndCell(id);
+          break;
+        case "wall":
+          if (wallCellArray.includes(id)) {
+            setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+          } else {
+            if (startCell === id) setStartCell("");
+            if (endCell === id) setEndCell("");
+            setWallCellArray([...wallCellArray, id]);
+          }
+          break;
 
-      default:
-        break;
+        default:
+          break;
+      }
     }
   }
 
@@ -356,7 +370,7 @@ export default function Grid({ settings }) {
 
               //skip if neighbour is a wall or 
               //is in closed list or
-              //is Opposite Diagonal Wall
+              //is Opposite Diagonal Wall / no crossing diagonal walls
               if (
                 wallCellArray.includes(id_to_be_searched) ||
                 closedList.some(cellObject => cellObject.id === id_to_be_searched) ||
@@ -437,8 +451,8 @@ export default function Grid({ settings }) {
           key={id}
           row={row}
           column={column}
-          handleChangeCellType={(id) => {
-            handleChangeCellType(id);
+          handleChangeCellType={(e, id) => {
+            handleChangeCellType(e, id);
           }}
           startCell={startCell === id}
           endCell={endCell === id}

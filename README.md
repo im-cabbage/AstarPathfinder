@@ -4,15 +4,15 @@ working on :
 - ~~open or closed indicator~~
 - ~~shortest path indicator~~
 - ~~parent indicator~~
-- complete algorithm (diagonal walls)
-
-Features to be added :
-- working algorithm
-- reset grid button
+- ~~no crossing diagonal walls~~
 - highlight to draw wall
 - ctrl + lclick = start
 - shift + lclick = end
+- reset grid button
 - step by step function (iteration)
+
+Features to be added :
+
 - Dijkstra's 
 - BFS
 - DFS
