@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Cell from "./cell";
 
 export default function Grid({ settings }) {
@@ -33,6 +33,9 @@ export default function Grid({ settings }) {
   const [closedNodes, setClosedNodes] = useState([]);
   const [shortestPath, setShortestPath] = useState([]);
   const [gridStructureArray, setGridStructureArray] = useState(() => initGridStructureArray());
+  const ref = useRef([]);
+  const snapshotsOfgridStructureArray = ref.current;
+  const [snapshotIndex, setSnapshotIndex] = useState(0);
 
 
   function initGridStructureArray() {
@@ -386,9 +389,10 @@ export default function Grid({ settings }) {
               )
                 continue;
 
-              //if new path to neighbour is shorter 
+              //if neighbour is not in open
+              //or new path to neighbour is shorter , set fcost
               const newFCost = getFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
-              // or neighbour is not in open, set fcost
+              
               if (
                 !openList.some(cellObject => cellObject.id === id_to_be_searched) || 
                 newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost
@@ -403,6 +407,14 @@ export default function Grid({ settings }) {
                 if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
                   // add neighbour to open
                   openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+
+                  //add snapshot for the iteration feature
+                  snapshotsOfgridStructureArray.push({
+                    gridStructureArray: tempGridStructureArray,
+                    openNodes: [...openList],
+                    closedNodes: [...closedList]
+                  });
                 } else { //update cellObject in openList if new path to neighbour is shorter
                   openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
                 }
@@ -447,7 +459,25 @@ export default function Grid({ settings }) {
     }
   }
 
+  function nextIteration() {
+    const currentSnapshot = snapshotsOfgridStructureArray[snapshotIndex];
+    
+    setOpenNodes(currentSnapshot.openNodes);
+    setClosedNodes(currentSnapshot.closedNodes);
+
+    setGridStructureArray(currentSnapshot.gridStructureArray);
+
+    if (snapshotIndex === snapshotsOfgridStructureArray.length - 1) {
+      const [endNodeRow, endNodeColumn] = endCell.split("-");
+      setShortestPath([...currentSnapshot.gridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+    } else {
+      setShortestPath([]);
+      setSnapshotIndex(snapshotIndex + 1);
+    }
+  }
+
   console.log(gridStructureArray);
+  console.log(snapshotsOfgridStructureArray);
 
   let cells = [];
   for (let row = 1; row <= gridSize; row++) {
@@ -484,6 +514,9 @@ export default function Grid({ settings }) {
     <>
       <div id="startSearch" onClick={startSearch}>
         Search
+      </div>
+      <div id="next" onClick={nextIteration}>
+        Next
       </div>
       <div
         id="grid"

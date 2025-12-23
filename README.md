@@ -21,6 +21,29 @@ Features to be added :
 - clean up frontend
 - legend table
 
+----------------------------------
+search btn = show shortest path  +  build snapshotsOfgridStructureArray
+
+iterate btns = 
+play, 
+pause, 
+skip to first, 
+next, 
+back
+
+
+
+snapshotsOfgridStructureArray = [ [gridStructureArray1], [gridStructureArray2], ...]
+
+nxt btn = move to next index
+
+
+
+start
+put neighbours in open
+lowest fcost, put in closed list 
+add neighbours to open
+...
 
 
 
