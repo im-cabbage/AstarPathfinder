@@ -7,10 +7,13 @@ working on :
 - ~~no crossing diagonal walls~~
 - ~~ctrl + lclick = start~~
 - ~~alt + lclick = end~~
+- step by step function (iteration)
+- bug: if closedList is empty n cant find endNode
+
 - save grid design to localstorage
 - reset grid button
 - create random maze
-- step by step function (iteration)
+
 
 
 Features to be added :
@@ -22,28 +25,12 @@ Features to be added :
 - legend table
 
 ----------------------------------
-search btn = show shortest path  +  build snapshotsOfgridStructureArray
-
 iterate btns = 
 play, 
 pause, 
 skip to first, 
 next, 
 back
-
-
-
-snapshotsOfgridStructureArray = [ [gridStructureArray1], [gridStructureArray2], ...]
-
-nxt btn = move to next index
-
-
-
-start
-put neighbours in open
-lowest fcost, put in closed list 
-add neighbours to open
-...
 
 
 

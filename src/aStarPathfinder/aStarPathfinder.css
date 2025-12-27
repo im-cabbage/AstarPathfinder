@@ -78,6 +78,10 @@
     transform: rotate(135deg);
 }
 
+.currentCell {
+    border-color: red;
+}
+
 .hidden {
     display: none;
 }

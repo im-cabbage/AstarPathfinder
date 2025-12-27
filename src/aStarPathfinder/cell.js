@@ -14,7 +14,8 @@ export default function Cell({
   open,
   closed,
   shortestPath,
-  parentIndicator
+  parentIndicator,
+  currentCell
 }) {
   const id = `${row}-${column}`;
   let classNames = `cell row-${row} column-${column}`;
@@ -36,6 +37,9 @@ export default function Cell({
   }
   if (shortestPath) {
     classNames += " shortestPath";
+  }
+  if (currentCell) {
+    classNames += " currentCell";
   }
 
   let parentIndicatorClassNames = `parentIndicator`;

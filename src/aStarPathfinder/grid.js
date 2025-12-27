@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { flushSync } from 'react-dom';
 import Cell from "./cell";
 
 export default function Grid({ settings }) {
@@ -35,6 +36,7 @@ export default function Grid({ settings }) {
   const [gridStructureArray, setGridStructureArray] = useState(() => initGridStructureArray());
   const ref = useRef([]);
   const snapshotsOfgridStructureArray = ref.current;
+  const [currentCell, setCurrentCell] = useState("");
   const [snapshotIndex, setSnapshotIndex] = useState(0);
 
 
@@ -128,6 +130,9 @@ export default function Grid({ settings }) {
     const endNodeID = endCell;
     const endNodeRow = endNodeID.split("-")[0];
     const endNodeColumn = endNodeID.split("-")[1];
+
+    let currentNode;
+    let indexOfCurrentNode = 0;
 
     openList.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
 
@@ -287,7 +292,6 @@ export default function Grid({ settings }) {
           }
         }
         if (searchedRow === 1 && searchedColumn === 1) { //if bottom right
-          console.log(`${current_row + 1}-${current_column}`)
           if (wallCellArray.includes(`${current_row + 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column + 1}`)) {
             return true;
           } else {
@@ -304,10 +308,17 @@ export default function Grid({ settings }) {
       }
     }
 
-    while (true) {
-      let currentNode;
-      var indexOfCurrentNode = 0;
+    function takeGridSnapshot() {
+      snapshotsOfgridStructureArray.push({
+        currentCell: currentNode.id,
+        gridStructureArray: tempGridStructureArray,
+        openNodes: [...openList],
+        closedNodes: [...closedList]
+      });
+    }
 
+    
+    while (true) {
       //find node with lowest f_cost in openlist
       if (openList.length > 1) {
         // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
@@ -340,12 +351,16 @@ export default function Grid({ settings }) {
       closedList.push(openList[indexOfCurrentNode]);
       openList.splice(indexOfCurrentNode, 1);
 
+      console.log(closedList)
+
       //if no possible path to endNode
       if (!currentNode) {
         setGridStructureArray(tempGridStructureArray);
         console.log("Not possible to reach end Node")
         break;
       }
+
+      takeGridSnapshot();//add snapshot for the iteration feature
 
       //if end node is found
       if (currentNode.id === endNodeID) {
@@ -408,18 +423,13 @@ export default function Grid({ settings }) {
                   // add neighbour to open
                   openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
 
-
-                  //add snapshot for the iteration feature
-                  snapshotsOfgridStructureArray.push({
-                    gridStructureArray: tempGridStructureArray,
-                    openNodes: [...openList],
-                    closedNodes: [...closedList]
-                  });
+                  takeGridSnapshot();//add snapshot for the iteration feature
                 } else { //update cellObject in openList if new path to neighbour is shorter
                   openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+                  takeGridSnapshot();//add snapshot for the iteration feature
                 }
-                
-              }
+              } 
             }
           }
         }
@@ -460,10 +470,12 @@ export default function Grid({ settings }) {
   }
 
   function nextIteration() {
+    
     const currentSnapshot = snapshotsOfgridStructureArray[snapshotIndex];
     
     setOpenNodes(currentSnapshot.openNodes);
     setClosedNodes(currentSnapshot.closedNodes);
+    setCurrentCell(currentSnapshot.currentCell);
 
     setGridStructureArray(currentSnapshot.gridStructureArray);
 
@@ -473,7 +485,14 @@ export default function Grid({ settings }) {
     } else {
       setShortestPath([]);
       setSnapshotIndex(snapshotIndex + 1);
+
+      // setTimeout(() => document.getElementById("next").click(), 100);
+      console.log(snapshotIndex)
+      // setTimeout(() => nextIteration(), 100);
     }
+      
+
+    // setTimeout(() => flushSync(()=>{console.log("d");setGridStructureArray(snapshotsOfgridStructureArray[snapshotIndex].gridStructureArray);setSnapshotIndex(snapshotIndex + 1);nextIteration()}), 100)
   }
 
   console.log(gridStructureArray);
@@ -505,6 +524,7 @@ export default function Grid({ settings }) {
           closed={closedNodes.some(nodeObject => nodeObject.id === id)}
           shortestPath={shortestPath.includes(id)}
           parentIndicator={findParentIndicator(row, column)}
+          currentCell={currentCell === id}
         />
       );
     }
