@@ -7,22 +7,32 @@ working on :
 - ~~no crossing diagonal walls~~
 - ~~ctrl + lclick = start~~
 - ~~alt + lclick = end~~
-- step by step function (iteration)
 - bug: if closedList is empty n cant find endNode
 
-- save grid design to localstorage
-- reset grid button
-- create random maze
-
-
-
 Features to be added :
-- highlight to draw wall (left click down + drag over cells)
+- implement n compare algo
 - Dijkstra's 
 - BFS
 - DFS
-- clean up frontend
+
+clean up frontend
+- save grid design to localstorage
+- reset grid button
+- create random maze
+- highlight to draw wall (left click down + drag over cells)
+- step by step function (iteration)
 - legend table
+
+
+Technical Reflection Documentation :  "Engineering Design & Algorithmic Analysis of an A* Pathfinding System"
+- 2-3 pages pdf
+- Problem statement
+- Why A* (tradeoffs vs other algorithms)
+- Design decisions
+- Challenges faced
+- What you would improve with more time
+- What this taught you about software engineering
+
 
 ----------------------------------
 iterate btns = 

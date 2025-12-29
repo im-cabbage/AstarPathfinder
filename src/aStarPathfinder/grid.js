@@ -23,8 +23,6 @@ export default function Grid({ settings }) {
     }
   }
 
-  //cellType: start, end, wall, blank, open, closed
-  // let gridStructureArray = [];
   const [startCell, setStartCell] = useState("");
   const [endCell, setEndCell] = useState("");
   const [wallCellArray, setWallCellArray] = useState([]);
@@ -103,6 +101,45 @@ export default function Grid({ settings }) {
       if (startCell === id) setStartCell("");
       if (endCell === id) setEndCell("");
       setWallCellArray([...wallCellArray, id]);
+    }
+  }
+
+  function isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, searchedRow, searchedColumn) {
+    //can only be opposite diagonal wall if neighbour is a corner node
+    if (row_to_be_searched == current_row || column_to_be_searched == current_column) { // if not corner node, return false
+      return false;
+    } else { // if corner node
+      current_row = parseInt(current_row);
+      current_column = parseInt(current_column);
+
+      if (searchedRow === -1 && searchedColumn === -1) { //if top left
+        if (wallCellArray.includes(`${current_row - 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column - 1}`)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      if (searchedRow === -1 && searchedColumn === 1) { //if top right
+        if (wallCellArray.includes(`${current_row - 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column + 1}`)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      if (searchedRow === 1 && searchedColumn === 1) { //if bottom right
+        if (wallCellArray.includes(`${current_row + 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column + 1}`)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      if (searchedRow === 1 && searchedColumn === -1) { //if bottom left
+        if (wallCellArray.includes(`${current_row + 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column - 1}`)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
     }
   }
 
@@ -269,45 +306,6 @@ export default function Grid({ settings }) {
       return fCost;
     }
 
-    function isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, searchedRow, searchedColumn) {
-      //can only be opposite diagonal wall if neighbour is a corner node
-      if (row_to_be_searched == current_row || column_to_be_searched == current_column) { // if not corner node, return false
-        return false;
-      } else { // if corner node
-        current_row = parseInt(current_row);
-        current_column = parseInt(current_column);
-
-        if (searchedRow === -1 && searchedColumn === -1) { //if top left
-          if (wallCellArray.includes(`${current_row - 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column - 1}`)) {
-            return true;
-          } else {
-            return false;
-          }
-        }
-        if (searchedRow === -1 && searchedColumn === 1) { //if top right
-          if (wallCellArray.includes(`${current_row - 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column + 1}`)) {
-            return true;
-          } else {
-            return false;
-          }
-        }
-        if (searchedRow === 1 && searchedColumn === 1) { //if bottom right
-          if (wallCellArray.includes(`${current_row + 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column + 1}`)) {
-            return true;
-          } else {
-            return false;
-          }
-        }
-        if (searchedRow === 1 && searchedColumn === -1) { //if bottom left
-          if (wallCellArray.includes(`${current_row + 1}-${current_column}`) && wallCellArray.includes(`${current_row}-${current_column - 1}`)) {
-            return true;
-          } else {
-            return false;
-          }
-        }
-      }
-    }
-
     function takeGridSnapshot() {
       snapshotsOfgridStructureArray.push({
         currentCell: currentNode.id,
@@ -364,8 +362,6 @@ export default function Grid({ settings }) {
 
       //if end node is found
       if (currentNode.id === endNodeID) {
-        const [endNodeRow, endNodeColumn] = endNodeID.split("-");
-        
         setGridStructureArray(tempGridStructureArray);
         setOpenNodes(openList);
         setClosedNodes(closedList);
@@ -493,6 +489,70 @@ export default function Grid({ settings }) {
       
 
     // setTimeout(() => flushSync(()=>{console.log("d");setGridStructureArray(snapshotsOfgridStructureArray[snapshotIndex].gridStructureArray);setSnapshotIndex(snapshotIndex + 1);nextIteration()}), 100)
+  }
+
+  function breadthFirstSearch() {
+    let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
+    const queue = [];
+    const visitedList = [];
+
+    const startNodeID = startCell;
+    const [startNodeRow, startNodeColumn] = endNodeID.split("-");
+
+    const endNodeID = endCell;
+    const [endNodeRow, endNodeColumn] = endNodeID.split("-");
+
+    let currentNode;
+
+    queue.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //add startNode to queue
+
+    //search top left to bottom right
+    while (true) {
+      currentNode = [...queue[0]];
+      visitedList.push(queue[0]); //add first element to visited list
+      queue.shift(); //remove first element
+
+      const current_row = currentNode.id.split("-")[0];
+      const current_column = currentNode.id.split("-")[1];
+
+      //if end node is found
+      if (currentNode.id === endNodeID) {
+        break;
+      }
+
+      for (let i = -1; i < 2; i++) {
+        let row_to_be_searched = parseInt(current_row) + i;
+        
+        if (row_to_be_searched > 0 && row_to_be_searched <= gridSize) {
+          
+          for (let j = -1; j < 2; j++) {
+            let column_to_be_searched = parseInt(current_column) + j;
+            let id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+            if (id_to_be_searched === startNodeID) continue;
+
+            if (
+              column_to_be_searched > 0 &&
+              column_to_be_searched <= gridSize
+            ) {
+
+              //skip if neighbour is a wall or 
+              //is in closed list or
+              //is Opposite Diagonal Wall / no crossing diagonal walls
+              if (
+                wallCellArray.includes(id_to_be_searched) ||
+                visitedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+                isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, i, j)
+              )
+                continue;
+
+              //add
+              queue.push(id_to_be_searched);
+            }
+          }
+        }
+      }
+    }
   }
 
   console.log(gridStructureArray);
