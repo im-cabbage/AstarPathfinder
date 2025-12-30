@@ -350,7 +350,7 @@ export default function Grid({ settings }) {
         closedList.push(openList[indexOfCurrentNode]);
         openList.splice(indexOfCurrentNode, 1);
       }
-      
+
       //if no possible path to endNode
       if (!currentNode) {
         setGridStructureArray(tempGridStructureArray);
@@ -479,7 +479,7 @@ export default function Grid({ settings }) {
       setShortestPath([]);
       setSnapshotIndex(snapshotIndex + 1);
 
-      // setTimeout(() => document.getElementById("next").click(), 100);
+      setTimeout(() => document.getElementById("next").click(), 100);
       console.log(snapshotIndex)
       // setTimeout(() => nextIteration(), 100);
     }
@@ -507,21 +507,66 @@ export default function Grid({ settings }) {
 
     queue.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //add startNode to queue
 
+    function setParent(row, column, currentNodeId) { //set parent for neighbour
+      const id = `${row}-${column}`;
+
+      const newGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {//add currentNode as parent into pathFromStartingNode before calling getGcost func
+        if (rowIndex === parseInt(row) - 1) {
+          const newRowArray = rowArray.map((cellObject, columnIndex) => {
+            if(columnIndex === parseInt(column) - 1) {
+              let newCellObject = new CellObject(cellObject.id); //create deep copy
+
+              const [ parentRow, parentColumn ] = currentNodeId.split("-");
+              const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+              
+              //add currentNode as parent in pathFromStartingNode array
+              newCellObject.pathFromStartingNode = [...parentNodePathFromStartingNode, currentNodeId];
+
+              return newCellObject;
+            } else {
+              return cellObject;
+            }
+          });
+          return newRowArray;
+        } else {
+          return rowArray;
+        }
+      });
+      tempGridStructureArray = newGridStructureArray;
+    }
+
+    function takeGridSnapshot() {
+      snapshotsOfgridStructureArray.push({
+        currentCell: currentNode.id,
+        gridStructureArray: tempGridStructureArray,
+        openNodes: [...queue],
+        closedNodes: [...visitedList]
+      });
+    }
+
     while (true) {
-      currentNode = [...queue[0]];
+      currentNode = queue[0];
+      console.log(currentNode)
       visitedList.push(queue[0]); //add first element to visited list
       queue.shift(); //remove first element
 
       const current_row = currentNode.id.split("-")[0];
       const current_column = currentNode.id.split("-")[1];
 
+      takeGridSnapshot()
+
       //if end node is found
       if (currentNode.id === endNodeID) {
+        setGridStructureArray(tempGridStructureArray);
+        setOpenNodes(queue)
+        setClosedNodes(visitedList);
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
         break;
       }
 
       const array_of_neighbour_coords_to_be_searched = [ [-1,0] , [0,-1] , [0,1] , [1,0] ]; //[row, col] check top, left, right, bottom in order
 
+      // eslint-disable-next-line no-loop-func
       array_of_neighbour_coords_to_be_searched.forEach((coordinate_to_be_searched) => {
         const [coordinate_to_be_searched_row, coordinate_to_be_searched_column] = coordinate_to_be_searched;
         const row_to_be_searched = parseInt(current_row) + coordinate_to_be_searched_row;
@@ -529,45 +574,24 @@ export default function Grid({ settings }) {
 
         const id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
 
-        if (row_to_be_searched < 0 || row_to_be_searched > gridSize) return
-        if (column_to_be_searched < 0 || column_to_be_searched > gridSize) return
+        if (row_to_be_searched <= 0 || row_to_be_searched > gridSize) return
+        if (column_to_be_searched <= 0 || column_to_be_searched > gridSize) return
 
+        //skip if neighbour is a wall, is in visitedList or already in queue
+        if (
+          wallCellArray.includes(id_to_be_searched) ||
+          visitedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+          queue.some(cellObject => cellObject.id === id_to_be_searched)
+        )
+          return;
         
+        queue.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+        //set parent
+        setParent(row_to_be_searched, column_to_be_searched, currentNode.id);
+
+        takeGridSnapshot()
       })
-
-
-      /*for (let i = -1; i < 2; i++) {
-        let row_to_be_searched = parseInt(current_row) + i;
-        
-        if (row_to_be_searched > 0 && row_to_be_searched <= gridSize) {
-          
-          for (let j = -1; j < 2; j++) {
-            let column_to_be_searched = parseInt(current_column) + j;
-            let id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
-
-            if (id_to_be_searched === startNodeID) continue;
-
-            if (
-              column_to_be_searched > 0 &&
-              column_to_be_searched <= gridSize
-            ) {
-
-              //skip if neighbour is a wall or 
-              //is in closed list or
-              //is Opposite Diagonal Wall / no crossing diagonal walls
-              if (
-                wallCellArray.includes(id_to_be_searched) ||
-                visitedList.some(cellObject => cellObject.id === id_to_be_searched) ||
-                isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, i, j)
-              )
-                continue;
-
-              //add
-              queue.push(id_to_be_searched);
-            }
-          }
-        }
-      }*/
     }
   }
 
@@ -596,7 +620,7 @@ export default function Grid({ settings }) {
           gCost={cellObject.g_cost ? cellObject.g_cost : ""}
           hCost={cellObject.h_cost ? cellObject.h_cost : ""}
           fCost={cellObject.f_cost ? cellObject.f_cost : ""}
-          open={openNodes.some(nodeObject => nodeObject.id === id)}
+          open={openNodes ? openNodes.some(nodeObject => nodeObject.id === id) : false}
           closed={closedNodes.some(nodeObject => nodeObject.id === id)}
           shortestPath={shortestPath.includes(id)}
           parentIndicator={findParentIndicator(row, column)}
@@ -608,7 +632,7 @@ export default function Grid({ settings }) {
 
   return (
     <>
-      <div id="startSearch" onClick={startSearch}>
+      <div id="startSearch" onClick={breadthFirstSearch}>
         Search
       </div>
       <div id="next" onClick={nextIteration}>
