@@ -349,12 +349,13 @@ export default function Grid({ settings }) {
       closedList.push(openList[indexOfCurrentNode]);
       openList.splice(indexOfCurrentNode, 1);
 
-      console.log(closedList)
+      
 
       //if no possible path to endNode
-      if (!currentNode) {
+      if (!currentNode || !openList[indexOfCurrentNode]) {
         setGridStructureArray(tempGridStructureArray);
-        console.log("Not possible to reach end Node")
+        console.log("Not possible to reach end Node");
+        window.alert("Not possible to reach end Node");
         break;
       }
 

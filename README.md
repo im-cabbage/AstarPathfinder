@@ -7,7 +7,7 @@ working on :
 - ~~no crossing diagonal walls~~
 - ~~ctrl + lclick = start~~
 - ~~alt + lclick = end~~
-- bug: if closedList is empty n cant find endNode
+- ~~bug: if closedList is empty n cant find endNode~~
 
 Features to be added :
 - implement n compare algo
