@@ -479,13 +479,40 @@ export default function Grid({ settings }) {
       setShortestPath([]);
       setSnapshotIndex(snapshotIndex + 1);
 
-      setTimeout(() => document.getElementById("next").click(), 100);
+      setTimeout(() => document.getElementById("next").click(), 30);
       console.log(snapshotIndex)
       // setTimeout(() => nextIteration(), 100);
     }
       
 
     // setTimeout(() => flushSync(()=>{console.log("d");setGridStructureArray(snapshotsOfgridStructureArray[snapshotIndex].gridStructureArray);setSnapshotIndex(snapshotIndex + 1);nextIteration()}), 100)
+  }
+
+  function setParent(row, column, currentNodeId, tempGridStructureArray) { //set parent for neighbour
+    const id = `${row}-${column}`;
+
+    return tempGridStructureArray.map((rowArray, rowIndex) => {
+      if (rowIndex === parseInt(row) - 1) {
+        const newRowArray = rowArray.map((cellObject, columnIndex) => {
+          if(columnIndex === parseInt(column) - 1) {
+            let newCellObject = new CellObject(cellObject.id); //create deep copy
+
+            const [ parentRow, parentColumn ] = currentNodeId.split("-");
+            const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+            
+            //add currentNode as parent in pathFromStartingNode array
+            newCellObject.pathFromStartingNode = [...parentNodePathFromStartingNode, currentNodeId];
+
+            return newCellObject;
+          } else {
+            return cellObject;
+          }
+        });
+        return newRowArray;
+      } else {
+        return rowArray;
+      }
+    });
   }
 
   function breadthFirstSearch() {
@@ -507,34 +534,6 @@ export default function Grid({ settings }) {
 
     queue.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //add startNode to queue
 
-    function setParent(row, column, currentNodeId) { //set parent for neighbour
-      const id = `${row}-${column}`;
-
-      const newGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {//add currentNode as parent into pathFromStartingNode before calling getGcost func
-        if (rowIndex === parseInt(row) - 1) {
-          const newRowArray = rowArray.map((cellObject, columnIndex) => {
-            if(columnIndex === parseInt(column) - 1) {
-              let newCellObject = new CellObject(cellObject.id); //create deep copy
-
-              const [ parentRow, parentColumn ] = currentNodeId.split("-");
-              const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
-              
-              //add currentNode as parent in pathFromStartingNode array
-              newCellObject.pathFromStartingNode = [...parentNodePathFromStartingNode, currentNodeId];
-
-              return newCellObject;
-            } else {
-              return cellObject;
-            }
-          });
-          return newRowArray;
-        } else {
-          return rowArray;
-        }
-      });
-      tempGridStructureArray = newGridStructureArray;
-    }
-
     function takeGridSnapshot() {
       snapshotsOfgridStructureArray.push({
         currentCell: currentNode.id,
@@ -550,10 +549,15 @@ export default function Grid({ settings }) {
       visitedList.push(queue[0]); //add first element to visited list
       queue.shift(); //remove first element
 
-      const current_row = currentNode.id.split("-")[0];
-      const current_column = currentNode.id.split("-")[1];
+      //if unreachable or no more available nodes
+      if(!currentNode) {
+        window.alert("End Node is unreachable");
+        break;
+      }
 
-      takeGridSnapshot()
+      const [current_row, current_column] = currentNode.id.split("-");
+
+      takeGridSnapshot();
 
       //if end node is found
       if (currentNode.id === endNodeID) {
@@ -564,7 +568,7 @@ export default function Grid({ settings }) {
         break;
       }
 
-      const array_of_neighbour_coords_to_be_searched = [ [-1,0] , [0,-1] , [0,1] , [1,0] ]; //[row, col] check top, left, right, bottom in order
+      const array_of_neighbour_coords_to_be_searched = [ [-1,0] , [0,1] , [1,0] , [0,-1] ]; //[row, col] check top, right, bottom, left in order
 
       // eslint-disable-next-line no-loop-func
       array_of_neighbour_coords_to_be_searched.forEach((coordinate_to_be_searched) => {
@@ -588,9 +592,92 @@ export default function Grid({ settings }) {
         queue.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
 
         //set parent
-        setParent(row_to_be_searched, column_to_be_searched, currentNode.id);
+        tempGridStructureArray = setParent(row_to_be_searched, column_to_be_searched, currentNode.id, tempGridStructureArray);
 
-        takeGridSnapshot()
+        takeGridSnapshot();
+      })
+    }
+  }
+
+  function depthFirstSearch() {
+    //DFS uses 4 directional movement (no diagonal travel)
+    //unweighted graph, cannot compare to astar
+    //uses a stack (Last In First Out) 
+
+    let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
+    const stack = [];
+    const visitedList = [];
+
+    const startNodeID = startCell;
+    const [startNodeRow, startNodeColumn] = startNodeID.split("-");
+
+    const endNodeID = endCell;
+    const [endNodeRow, endNodeColumn] = endNodeID.split("-");
+
+    let currentNode;
+
+    stack.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //add startNode to stack
+
+    function takeGridSnapshot() {
+      snapshotsOfgridStructureArray.push({
+        currentCell: currentNode.id,
+        gridStructureArray: tempGridStructureArray,
+        openNodes: [...stack],
+        closedNodes: [...visitedList]
+      });
+    }
+
+    while (true) {
+      currentNode = stack[stack.length - 1]; //(Last In First Out)
+      visitedList.push(stack[stack.length - 1]);
+      stack.pop();
+
+      //if unreachable or no more available nodes
+      if(!currentNode) {
+        window.alert("End Node is unreachable");
+        break;
+      }
+
+      const [current_row, current_column] = currentNode.id.split("-");
+
+      takeGridSnapshot();
+
+      //if end node is found
+      if (currentNode.id === endNodeID) {
+        setGridStructureArray(tempGridStructureArray);
+        setOpenNodes(stack)
+        setClosedNodes(visitedList);
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+        break;
+      }
+
+      const array_of_neighbour_coords_to_be_searched = [ [0,-1] , [1,0] , [0,1] , [-1,0] ]; //[row, col] check left, bottom, right, top in order (reversed from BFS)
+
+      // eslint-disable-next-line no-loop-func
+      array_of_neighbour_coords_to_be_searched.forEach((coordinate_to_be_searched) => {
+        const [coordinate_to_be_searched_row, coordinate_to_be_searched_column] = coordinate_to_be_searched;
+        const row_to_be_searched = parseInt(current_row) + coordinate_to_be_searched_row;
+        const column_to_be_searched = parseInt(current_column) + coordinate_to_be_searched_column;
+
+        const id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+        if (row_to_be_searched <= 0 || row_to_be_searched > gridSize) return
+        if (column_to_be_searched <= 0 || column_to_be_searched > gridSize) return
+
+        //skip if neighbour is a wall, is in visitedList or already in stack
+        if (
+          wallCellArray.includes(id_to_be_searched) ||
+          visitedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+          stack.some(cellObject => cellObject.id === id_to_be_searched)
+        )
+          return;
+        
+        stack.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+        //set parent
+        tempGridStructureArray = setParent(row_to_be_searched, column_to_be_searched, currentNode.id, tempGridStructureArray);
+
+        takeGridSnapshot();
       })
     }
   }
@@ -620,7 +707,7 @@ export default function Grid({ settings }) {
           gCost={cellObject.g_cost ? cellObject.g_cost : ""}
           hCost={cellObject.h_cost ? cellObject.h_cost : ""}
           fCost={cellObject.f_cost ? cellObject.f_cost : ""}
-          open={openNodes ? openNodes.some(nodeObject => nodeObject.id === id) : false}
+          open={openNodes.some(nodeObject => nodeObject.id === id)}
           closed={closedNodes.some(nodeObject => nodeObject.id === id)}
           shortestPath={shortestPath.includes(id)}
           parentIndicator={findParentIndicator(row, column)}
@@ -632,7 +719,7 @@ export default function Grid({ settings }) {
 
   return (
     <>
-      <div id="startSearch" onClick={breadthFirstSearch}>
+      <div id="startSearch" onClick={depthFirstSearch}>
         Search
       </div>
       <div id="next" onClick={nextIteration}>
