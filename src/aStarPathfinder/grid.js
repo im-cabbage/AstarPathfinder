@@ -346,13 +346,13 @@ export default function Grid({ settings }) {
         currentNode = openList[0];
       }
 
-      closedList.push(openList[indexOfCurrentNode]);
-      openList.splice(indexOfCurrentNode, 1);
-
+      if (openList[indexOfCurrentNode] !== undefined) {
+        closedList.push(openList[indexOfCurrentNode]);
+        openList.splice(indexOfCurrentNode, 1);
+      }
       
-
       //if no possible path to endNode
-      if (!currentNode || !openList[indexOfCurrentNode]) {
+      if (!currentNode) {
         setGridStructureArray(tempGridStructureArray);
         console.log("Not possible to reach end Node");
         window.alert("Not possible to reach end Node");
@@ -434,10 +434,6 @@ export default function Grid({ settings }) {
     }
   }
 
-  function startSearchIterative() { // stop after every step
-
-  }
-
   function findParentIndicator(row, column) {
     const pathFromStartingNode = gridStructureArray[row - 1][column - 1].pathFromStartingNode;
     const immediateParent = pathFromStartingNode[pathFromStartingNode.length - 1];
@@ -493,12 +489,16 @@ export default function Grid({ settings }) {
   }
 
   function breadthFirstSearch() {
+    //BFS uses 4 directional movement (no diagonal travel)
+    //unweighted graph, cannot compare to astar
+    //queue is FIFO first in first out
+
     let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
     const queue = [];
     const visitedList = [];
 
     const startNodeID = startCell;
-    const [startNodeRow, startNodeColumn] = endNodeID.split("-");
+    const [startNodeRow, startNodeColumn] = startNodeID.split("-");
 
     const endNodeID = endCell;
     const [endNodeRow, endNodeColumn] = endNodeID.split("-");
@@ -507,7 +507,6 @@ export default function Grid({ settings }) {
 
     queue.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //add startNode to queue
 
-    //search top left to bottom right
     while (true) {
       currentNode = [...queue[0]];
       visitedList.push(queue[0]); //add first element to visited list
@@ -521,7 +520,23 @@ export default function Grid({ settings }) {
         break;
       }
 
-      for (let i = -1; i < 2; i++) {
+      const array_of_neighbour_coords_to_be_searched = [ [-1,0] , [0,-1] , [0,1] , [1,0] ]; //[row, col] check top, left, right, bottom in order
+
+      array_of_neighbour_coords_to_be_searched.forEach((coordinate_to_be_searched) => {
+        const [coordinate_to_be_searched_row, coordinate_to_be_searched_column] = coordinate_to_be_searched;
+        const row_to_be_searched = parseInt(current_row) + coordinate_to_be_searched_row;
+        const column_to_be_searched = parseInt(current_column) + coordinate_to_be_searched_column;
+
+        const id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+        if (row_to_be_searched < 0 || row_to_be_searched > gridSize) return
+        if (column_to_be_searched < 0 || column_to_be_searched > gridSize) return
+
+        
+      })
+
+
+      /*for (let i = -1; i < 2; i++) {
         let row_to_be_searched = parseInt(current_row) + i;
         
         if (row_to_be_searched > 0 && row_to_be_searched <= gridSize) {
@@ -552,7 +567,7 @@ export default function Grid({ settings }) {
             }
           }
         }
-      }
+      }*/
     }
   }
 
