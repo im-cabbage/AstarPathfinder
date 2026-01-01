@@ -161,12 +161,10 @@ export default function Grid({ settings }) {
     let closedList = [];
 
     const startNodeID = startCell;
-    const startNodeRow = startNodeID.split("-")[0];
-    const startNodeColumn = startNodeID.split("-")[1];
+    const [startNodeRow, startNodeColumn] = startNodeID.split("-");
 
     const endNodeID = endCell;
-    const endNodeRow = endNodeID.split("-")[0];
-    const endNodeColumn = endNodeID.split("-")[1];
+    const [endNodeRow, endNodeColumn] = endNodeID.split("-");
 
     let currentNode;
     let indexOfCurrentNode = 0;
@@ -679,6 +677,284 @@ export default function Grid({ settings }) {
 
         takeGridSnapshot();
       })
+    }
+  }
+
+  function dijkstrasSearch() {//uses min-heap priority queue (FIFO)
+
+    let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
+    let queue = []; //min-heap priority queue (FIFO)
+    let closedList = []; //visited nodes
+
+    const startNodeID = startCell;
+    const [startNodeRow, startNodeColumn] = startNodeID.split("-");
+
+    const endNodeID = endCell;
+    const [endNodeRow, endNodeColumn] = endNodeID.split("-");
+
+    let currentNode;
+    let indexOfCurrentNode = 0;
+
+    queue.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //[{id: , f_cost: , path: [first,..] }, ]
+
+    
+
+    function getGcost(row, column, currentNodeId) {
+      //path is an array of parentIDs
+      // G cost: distance from starting node using path array
+
+      //if new path to neighbour is shorter, use parents path
+      let pathFromStartingNode = [...tempGridStructureArray[row - 1][column - 1].pathFromStartingNode]; //create shallow copy to avoid mutation
+      const parentNode = pathFromStartingNode[pathFromStartingNode.length - 1];
+      
+      if (parentNode !== currentNodeId) {
+        const [currentNodeRow, currentNodeColumn] = currentNodeId.split("-");
+        const currentNodePathFromStartingNode = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].pathFromStartingNode;
+        pathFromStartingNode = [...currentNodePathFromStartingNode, currentNodeId];
+      }
+      
+      if (pathFromStartingNode.length === 1) { //only contains startNode
+        if (row == startNodeRow || column == startNodeColumn) { //straight
+          return 10;
+        } else { //diagonal
+          return 14;
+        }
+      } else {
+        return pathFromStartingNode.reduceRight((totalPathCost, currentNodeId, currentNodeIndex) => {
+          //get row n col of parent
+          //straight or diagonal?
+
+          let currentNodeRow = currentNodeId.split("-")[0];
+          let currentNodecolumn = currentNodeId.split("-")[1];
+
+          let parentNode;
+          
+          if (currentNodeId === startNodeID) { //skip if startCell
+            return totalPathCost 
+          } else {
+            parentNode = pathFromStartingNode[currentNodeIndex - 1];
+            const [ parentNodeRow, parentNodeColumn] = parentNode.split("-");
+
+            if (currentNodeIndex === pathFromStartingNode.length - 1) { //if last index, calculate distance from current neighbour to currentNode
+              if (row == currentNodeRow || column == currentNodecolumn) { //current neighbour to currentNode is straight, +10
+                if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
+                  return totalPathCost + 10 + 10;
+                } else { //diagonal
+                  return totalPathCost + 14 + 10;
+                }
+              } else { //current neighbour to currentNode is diagonal, +14
+                if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
+                  return totalPathCost + 10 + 14;
+                } else { //diagonal
+                  return totalPathCost + 14 + 14;
+                }
+              }
+            } else {
+              if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
+                return totalPathCost + 10;
+              } else { //diagonal
+                return totalPathCost + 14;
+              }
+            }
+          }
+        }, 0)
+      }
+    }
+
+    function getHcost(row, column) {
+      const columnDifference = Math.abs(endNodeColumn - column);
+      const rowDifference = Math.abs(endNodeRow - row);
+
+      //if same row
+      if (row == endNodeRow) {
+        return 10 * Math.abs(endNodeColumn - column);
+      }
+      //if same column
+      if (column == endNodeColumn) {
+        return 10 * Math.abs(endNodeRow - row);
+      }
+      //if diagonal
+      if (columnDifference == rowDifference) {
+        return 14 * columnDifference;
+      }
+      //if x > y
+      if (columnDifference > rowDifference) {
+        return 14 * rowDifference + 10 * (columnDifference - rowDifference);
+      }
+      //if y > x
+      if (rowDifference > columnDifference) {
+        return 14 * columnDifference + 10 * (rowDifference - columnDifference);
+      }
+    }
+
+    function getFcost(row, column, currentNodeId) {
+      return getGcost(row, column, currentNodeId) + getHcost(row, column);
+    }
+
+    function setFcost(row, column, currentNodeId) { //set f_cost for neighbour
+      const id = `${row}-${column}`;
+
+      const newGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {//add currentNode as parent into pathFromStartingNode before calling getGcost func
+        if (rowIndex === parseInt(row) - 1) {
+          const newRowArray = rowArray.map((cellObject, columnIndex) => {
+            if(columnIndex === parseInt(column) - 1) {
+              let newCellObject = new CellObject(cellObject.id); //create deep copy
+
+              const [ parentRow, parentColumn ] = currentNodeId.split("-");
+              const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+              
+              //add currentNode as parent in pathFromStartingNode array
+              newCellObject.pathFromStartingNode = [...parentNodePathFromStartingNode, currentNodeId];
+
+              return newCellObject;
+            } else {
+              return cellObject;
+            }
+          });
+          return newRowArray;
+        } else {
+          return rowArray;
+        }
+      });
+      tempGridStructureArray = newGridStructureArray;
+
+      const gCost = getGcost(row, column, currentNodeId);
+      const hCost = getHcost(row, column);
+      const fCost = gCost + hCost;
+
+      //does not mutate original gridStructureArray since the child object has been replaced
+      tempGridStructureArray[row - 1][column - 1].g_cost = gCost;
+      tempGridStructureArray[row - 1][column - 1].h_cost = hCost;
+      tempGridStructureArray[row - 1][column - 1].f_cost = fCost;
+
+      return fCost;
+    }
+
+    function takeGridSnapshot() {
+      snapshotsOfgridStructureArray.push({
+        currentCell: currentNode.id,
+        gridStructureArray: tempGridStructureArray,
+        openNodes: [...openList],
+        closedNodes: [...closedList]
+      });
+    }
+
+    
+    while (true) {
+      //find node with lowest f_cost in openlist
+      if (openList.length > 1) {
+        // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
+        let min_f_cost = openList[0].f_cost;
+        let min_h_cost = openList[0].h_cost;
+        let index_min_f_cost = 0;
+
+        for (let i = 0; i < openList.length; i++) {
+          let current_f_cost = openList[i].f_cost;
+          let current_h_cost = openList[i].h_cost;
+
+          if (current_f_cost < min_f_cost) {
+            min_f_cost = current_f_cost;
+            min_h_cost = current_h_cost;
+            index_min_f_cost = i;
+          } else if (current_f_cost === min_f_cost) {
+            if (current_h_cost < min_h_cost) { //if same fCost, find lower hCost
+              min_h_cost = current_h_cost;
+              index_min_f_cost = i;
+            }
+
+          }
+        }
+        currentNode = openList[index_min_f_cost];
+        indexOfCurrentNode = index_min_f_cost;
+      } else { //at startNode
+        currentNode = openList[0];
+      }
+
+      if (openList[indexOfCurrentNode] !== undefined) {
+        closedList.push(openList[indexOfCurrentNode]);
+        openList.splice(indexOfCurrentNode, 1);
+      }
+
+      //if no possible path to endNode
+      if (!currentNode) {
+        setGridStructureArray(tempGridStructureArray);
+        console.log("Not possible to reach end Node");
+        window.alert("Not possible to reach end Node");
+        break;
+      }
+
+      takeGridSnapshot();//add snapshot for the iteration feature
+
+      //if end node is found
+      if (currentNode.id === endNodeID) {
+        setGridStructureArray(tempGridStructureArray);
+        setOpenNodes(openList);
+        setClosedNodes(closedList);
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+        break;
+      }
+
+
+      const current_row = currentNode.id.split("-")[0];
+      const current_column = currentNode.id.split("-")[1];
+
+      //search neighbours from top left to bottom right
+      for (let i = -1; i < 2; i++) {
+        let row_to_be_searched = parseInt(current_row) + i;
+        
+        if (row_to_be_searched > 0 && row_to_be_searched <= gridSize) {
+          
+          for (let j = -1; j < 2; j++) {
+            let column_to_be_searched = parseInt(current_column) + j;
+            let id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+            if (id_to_be_searched === startNodeID) continue;
+
+            if (
+              column_to_be_searched > 0 &&
+              column_to_be_searched <= gridSize
+            ) {
+
+              //skip if neighbour is a wall or 
+              //is in closed list or
+              //is Opposite Diagonal Wall / no crossing diagonal walls
+              if (
+                wallCellArray.includes(id_to_be_searched) ||
+                closedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+                isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, i, j)
+              )
+                continue;
+
+              //if neighbour is not in open
+              //or new path to neighbour is shorter , set fcost
+              const newFCost = getFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
+              
+              if (
+                !openList.some(cellObject => cellObject.id === id_to_be_searched) || 
+                newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost
+              ) {
+                //set fcost
+                setFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
+
+                //set parent of neighbour to current
+
+
+                //if neighbour is not in open
+                if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
+                  // add neighbour to open
+                  openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+                  takeGridSnapshot();//add snapshot for the iteration feature
+                } else { //update cellObject in openList if new path to neighbour is shorter
+                  openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+                  takeGridSnapshot();//add snapshot for the iteration feature
+                }
+              } 
+            }
+          }
+        }
+      }
     }
   }
 
