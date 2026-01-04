@@ -1,8 +1,8 @@
 # Notes
 working on :
-- Dijkstra's
-- iterate buttons
-- completion timer
+- ~~Dijkstra's~~
+- ~~completion timer~~
+- iterate buttons + iteration indicator eg. 23/122
 - compare algo
 - clean up frontend
 - add extra features

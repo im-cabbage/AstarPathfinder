@@ -1,22 +1,24 @@
 import { useState, useRef } from "react";
 import { flushSync } from 'react-dom';
 import Cell from "./cell";
+import { clear } from "@testing-library/user-event/dist/clear";
 
 export default function Grid({ settings }) {
   class CellObject {
     id;
     row;
-    width;
+    column;
     g_cost;
     h_cost;
     f_cost;
+    a_cost = -1; //-1 to represent infinity for accumulated cost for dijkstra's
     pathFromStartingNode = []; // contains IDs of all child nodes
     parentNode;
 
     constructor(id, g_cost, h_cost, f_cost) {
       this.id = id;
       this.row = id.split("-")[0];
-      this.width = id.split("-")[1];
+      this.column = id.split("-")[1];
       this.g_cost = g_cost;
       this.h_cost = h_cost;
       this.f_cost = f_cost;
@@ -28,14 +30,18 @@ export default function Grid({ settings }) {
   const [wallCellArray, setWallCellArray] = useState([]);
   const gridSize = settings.gridSize;
   const cellTypeSelector = settings.cellTypeSelector;
+  const [searched, setSearched] = useState(false);
   const [openNodes, setOpenNodes] = useState([]);
   const [closedNodes, setClosedNodes] = useState([]);
   const [shortestPath, setShortestPath] = useState([]);
   const [gridStructureArray, setGridStructureArray] = useState(() => initGridStructureArray());
-  const ref = useRef([]);
-  const snapshotsOfgridStructureArray = ref.current;
+  const snapshotsOfgridStructureArrayRef = useRef([]);
+  const snapshotsOfgridStructureArray = snapshotsOfgridStructureArrayRef.current;
   const [currentCell, setCurrentCell] = useState("");
   const [snapshotIndex, setSnapshotIndex] = useState(0);
+  const autoplayerRef = useRef(null);
+  const [searchTime, setSearchTime] = useState(null);
+  let searchTimeStart;
 
 
   function initGridStructureArray() {
@@ -143,14 +149,13 @@ export default function Grid({ settings }) {
     }
   }
 
-  
-
   function startSearch() {
     /*
     G cost: distance from starting node
     H cost: distance from end node (Heuristic)
     F cost: G + H (chooses lowest F cost)
 
+    OPEN cell = queued to be searched
     CLOSED cell = searched already
     */
 
@@ -169,7 +174,6 @@ export default function Grid({ settings }) {
     const [endNodeRow, endNodeColumn] = endNodeID.split("-");
 
     let currentNode;
-    let indexOfCurrentNode = 0;
 
     openList.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
 
@@ -393,51 +397,14 @@ export default function Grid({ settings }) {
 
     
     while (true) {
-      /*
-      //find node with lowest f_cost in openlist
-      if (openList.length > 1) {
-        // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
-        let min_f_cost = openList[0].f_cost;
-        let min_h_cost = openList[0].h_cost;
-        let index_min_f_cost = 0;
-
-        for (let i = 0; i < openList.length; i++) {
-          let current_f_cost = openList[i].f_cost;
-          let current_h_cost = openList[i].h_cost;
-
-          if (current_f_cost < min_f_cost) {
-            min_f_cost = current_f_cost;
-            min_h_cost = current_h_cost;
-            index_min_f_cost = i;
-          } else if (current_f_cost === min_f_cost) {
-            if (current_h_cost < min_h_cost) { //if same fCost, find lower hCost
-              min_h_cost = current_h_cost;
-              index_min_f_cost = i;
-            }
-
-          }
-        }
-        currentNode = openList[index_min_f_cost];
-        indexOfCurrentNode = index_min_f_cost;
-      } else { //at startNode
-        currentNode = openList[0];
-      }
-*/
       buildMinHeap(openList);
       currentNode = openList[0];
 
-      /*
-      if (openList[indexOfCurrentNode] !== undefined) {
-        closedList.push(openList[indexOfCurrentNode]);
-        openList.splice(indexOfCurrentNode, 1);
-      }
-      */
       if (currentNode !== undefined) {
         closedList.push(currentNode);
         heapDeleteMin(openList);
       }
 
-console.log([...openList])
       //if no possible path to endNode
       if (!currentNode) {
         setGridStructureArray(tempGridStructureArray);
@@ -453,13 +420,13 @@ console.log([...openList])
         setGridStructureArray(tempGridStructureArray);
         setOpenNodes(openList);
         setClosedNodes(closedList);
-        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode]);
+        setSearched(true);
         break;
       }
 
 
-      const current_row = currentNode.id.split("-")[0];
-      const current_column = currentNode.id.split("-")[1];
+      const [current_row, current_column] = currentNode.id.split("-");
 
       //search neighbours from top left to bottom right
       for (let i = -1; i < 2; i++) {
@@ -488,29 +455,24 @@ console.log([...openList])
               )
                 continue;
 
-              //if neighbour is not in open
-              //or new path to neighbour is shorter , set fcost
+              //if neighbour is not in open or new path to neighbour is shorter , set fcost
               const newFCost = getFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
               
               if (
                 !openList.some(cellObject => cellObject.id === id_to_be_searched) || 
                 newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost
               ) {
-                //set fcost
-                setFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
+                setFcost(row_to_be_searched, column_to_be_searched, currentNode.id);//set fcost
 
                 //set parent of neighbour to current
 
 
                 //if neighbour is not in open
                 if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
-                  // add neighbour to open
-                  // openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
-                  heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                  heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);// add neighbour to open
 
                   takeGridSnapshot();//add snapshot for the iteration feature
                 } else { //update cellObject in openList if new path to neighbour is shorter
-                  // openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
                   heapDelete(openList, id_to_be_searched);
                   heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
 
@@ -552,8 +514,8 @@ console.log([...openList])
     }
   }
 
-  function nextIteration() {
-    
+  function nextIteration(autoplay, autoplaySpeed) {
+    if(autoplaySpeed === undefined) clearTimeout(autoplayerRef.current)
     const currentSnapshot = snapshotsOfgridStructureArray[snapshotIndex];
 
     setOpenNodes(currentSnapshot.openNodes);
@@ -571,7 +533,10 @@ console.log([...openList])
       setShortestPath([]);
       setSnapshotIndex(snapshotIndex + 1);
 
-      // setTimeout(() => document.getElementById("next").click(), 30);
+      if (autoplay) {
+        autoplayerRef.current = setTimeout(() => document.getElementById("play").click(), autoplaySpeed);
+      } 
+
     }
     // setTimeout(() => flushSync(()=>{console.log("d");setGridStructureArray(snapshotsOfgridStructureArray[snapshotIndex].gridStructureArray);setSnapshotIndex(snapshotIndex + 1);nextIteration()}), 100)
   }
@@ -652,7 +617,8 @@ console.log([...openList])
         setGridStructureArray(tempGridStructureArray);
         setOpenNodes(queue)
         setClosedNodes(visitedList);
-        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode]);
+        setSearched(true);
         break;
       }
 
@@ -735,7 +701,8 @@ console.log([...openList])
         setGridStructureArray(tempGridStructureArray);
         setOpenNodes(stack)
         setClosedNodes(visitedList);
-        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode]);
+        setSearched(true);
         break;
       }
 
@@ -771,6 +738,7 @@ console.log([...openList])
   }
 
   function dijkstrasSearch() {//uses min-heap priority queue (FIFO)
+    startTimer();
 
     let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
     let queue = []; //min-heap priority queue (FIFO)
@@ -783,107 +751,119 @@ console.log([...openList])
     const [endNodeRow, endNodeColumn] = endNodeID.split("-");
 
     let currentNode;
-    let indexOfCurrentNode = 0;
 
-    queue.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //[{id: , f_cost: , path: [first,..] }, ]
-/*
+    queue.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //[{id: , a_cost: , path: [first,..] }, ]
     
+    function minHeapify(arr, heapSize, i) {
+      let l = 2*i + 1;
+      let r = 2*i + 2;
 
-    function getGcost(row, column, currentNodeId) {
-      //path is an array of parentIDs
-      // G cost: distance from starting node using path array
+      let smallest = i;
 
-      //if new path to neighbour is shorter, use parents path
-      let pathFromStartingNode = [...tempGridStructureArray[row - 1][column - 1].pathFromStartingNode]; //create shallow copy to avoid mutation
-      const parentNode = pathFromStartingNode[pathFromStartingNode.length - 1];
-      
-      if (parentNode !== currentNodeId) {
-        const [currentNodeRow, currentNodeColumn] = currentNodeId.split("-");
-        const currentNodePathFromStartingNode = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].pathFromStartingNode;
-        pathFromStartingNode = [...currentNodePathFromStartingNode, currentNodeId];
-      }
-      
-      if (pathFromStartingNode.length === 1) { //only contains startNode
-        if (row == startNodeRow || column == startNodeColumn) { //straight
-          return 10;
-        } else { //diagonal
-          return 14;
-        }
-      } else {
-        return pathFromStartingNode.reduceRight((totalPathCost, currentNodeId, currentNodeIndex) => {
-          //get row n col of parent
-          //straight or diagonal?
-
-          let currentNodeRow = currentNodeId.split("-")[0];
-          let currentNodecolumn = currentNodeId.split("-")[1];
-
-          let parentNode;
-          
-          if (currentNodeId === startNodeID) { //skip if startCell
-            return totalPathCost 
-          } else {
-            parentNode = pathFromStartingNode[currentNodeIndex - 1];
-            const [ parentNodeRow, parentNodeColumn] = parentNode.split("-");
-
-            if (currentNodeIndex === pathFromStartingNode.length - 1) { //if last index, calculate distance from current neighbour to currentNode
-              if (row == currentNodeRow || column == currentNodecolumn) { //current neighbour to currentNode is straight, +10
-                if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
-                  return totalPathCost + 10 + 10;
-                } else { //diagonal
-                  return totalPathCost + 14 + 10;
-                }
-              } else { //current neighbour to currentNode is diagonal, +14
-                if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
-                  return totalPathCost + 10 + 14;
-                } else { //diagonal
-                  return totalPathCost + 14 + 14;
-                }
-              }
-            } else {
-              if (currentNodeRow == parentNodeRow || currentNodecolumn == parentNodeColumn) { 
-                return totalPathCost + 10;
-              } else { //diagonal
-                return totalPathCost + 14;
+      if (l < heapSize && arr[l].a_cost <= arr[smallest].a_cost) { // If left child exists and is smaller than root
+        if (arr[l].a_cost < arr[smallest].a_cost) {
+          smallest = l;
+        } else { //if same aCost, smaller row/col is smaller 
+          if (arr[l].row <= arr[smallest].row) {
+            if (arr[l].row < arr[smallest].row) {
+              smallest = l;
+            } else { //if same row, lower col is smaller
+              if (arr[l].column < arr[smallest].column) {
+                smallest = l;
               }
             }
           }
-        }, 0)
+        }
+      }
+
+      if (r < heapSize && arr[r].a_cost <= arr[smallest].a_cost) { // If left child exists and is smaller than root
+        if (arr[r].a_cost < arr[smallest].a_cost) {
+          smallest = r;
+        } else { //if same aCost, smaller row/col is smaller 
+          if (arr[r].row <= arr[smallest].row) {
+            if (arr[r].row < arr[smallest].row) {
+              smallest = r;
+            } else { //if same row, lower col is smaller
+              if (arr[r].column < arr[smallest].column) {
+                smallest = r;
+              }
+            }
+          }
+        }
+      }
+
+      // If smallest is not root, 
+      // swap and recursively heapify
+      if (smallest !== i) {
+        let temp = arr[i];
+        arr[i] = arr[smallest];
+        arr[smallest] = temp;
+      
+        minHeapify(arr, heapSize, smallest);
       }
     }
 
-    function getHcost(row, column) {
-      const columnDifference = Math.abs(endNodeColumn - column);
-      const rowDifference = Math.abs(endNodeRow - row);
+    function buildMinHeap(arr) {
+      let heapSize = arr.length;
 
-      //if same row
-      if (row == endNodeRow) {
-        return 10 * Math.abs(endNodeColumn - column);
-      }
-      //if same column
-      if (column == endNodeColumn) {
-        return 10 * Math.abs(endNodeRow - row);
-      }
-      //if diagonal
-      if (columnDifference == rowDifference) {
-        return 14 * columnDifference;
-      }
-      //if x > y
-      if (columnDifference > rowDifference) {
-        return 14 * rowDifference + 10 * (columnDifference - rowDifference);
-      }
-      //if y > x
-      if (rowDifference > columnDifference) {
-        return 14 * columnDifference + 10 * (rowDifference - columnDifference);
+      //formula to get leaf node: arr[floor(heapSize/2)] to arr[heapSize - 1]
+      //perform heapify from last non-leaf node up to root 
+      for(let i = Math.floor(heapSize / 2) - 1 ; i >= 0; i--) {
+        minHeapify(arr, heapSize, i);
       }
     }
 
-    function getFcost(row, column, currentNodeId) {
-      return getGcost(row, column, currentNodeId) + getHcost(row, column);
+    function heapInsert(heap, value) {
+      heap.push(value); // Add the new element to the end of the heap
+
+      buildMinHeap(heap);
     }
 
-    function setFcost(row, column, currentNodeId) { //set f_cost for neighbour
-      const id = `${row}-${column}`;
+    function heapDeleteMin(heap) {
+      heap[0] = heap[heap.length - 1];
+      heap.pop();
 
+      buildMinHeap(heap);
+    }
+
+    function heapDelete(heap, id) {
+      // Find the index of the element to be deleted
+      let index = -1;
+      for (let i = 0; i < heap.length; i++) {
+          if (heap[i].id === id) {
+              index = i;
+              break;
+          }
+      }
+
+      // Replace the element to be deleted with the last element
+      heap[index] = heap[heap.length - 1];
+      
+      heap.pop();
+
+      buildMinHeap(heap);
+    }
+    
+    function getAcost(row, column, currentNodeId) {
+      let [currentNodeRow, currentNodeColumn] = currentNodeId.split("-").map((e)=>parseInt(e));
+      const currentNodeAcost = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].a_cost;
+
+      if (row === currentNodeRow || column === currentNodeColumn) { //if straight path, add 10 to a_cost
+        if (currentNodeAcost === -1) {
+          return 10;
+        } else {
+          return currentNodeAcost + 10;
+        }
+      } else { //if diagonal path, add 14 to a_cost
+        if (currentNodeAcost === -1) {
+          return 14;
+        } else {
+          return currentNodeAcost + 14;
+        }
+      }
+    }
+
+    function setAcost(row, column, currentNodeId) {
       const newGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {//add currentNode as parent into pathFromStartingNode before calling getGcost func
         if (rowIndex === parseInt(row) - 1) {
           const newRowArray = rowArray.map((cellObject, columnIndex) => {
@@ -908,61 +888,27 @@ console.log([...openList])
       });
       tempGridStructureArray = newGridStructureArray;
 
-      const gCost = getGcost(row, column, currentNodeId);
-      const hCost = getHcost(row, column);
-      const fCost = gCost + hCost;
-
-      //does not mutate original gridStructureArray since the child object has been replaced
-      tempGridStructureArray[row - 1][column - 1].g_cost = gCost;
-      tempGridStructureArray[row - 1][column - 1].h_cost = hCost;
-      tempGridStructureArray[row - 1][column - 1].f_cost = fCost;
-
-      return fCost;
+      const newAcost = getAcost(row, column, currentNodeId);
+      tempGridStructureArray[row - 1][column - 1].a_cost = newAcost;
     }
 
     function takeGridSnapshot() {
       snapshotsOfgridStructureArray.push({
         currentCell: currentNode.id,
         gridStructureArray: tempGridStructureArray,
-        openNodes: [...openList],
+        openNodes: [...queue],
         closedNodes: [...closedList]
       });
     }
 
     
     while (true) {
-      //find node with lowest f_cost in openlist
-      if (openList.length > 1) {
-        // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
-        let min_f_cost = openList[0].f_cost;
-        let min_h_cost = openList[0].h_cost;
-        let index_min_f_cost = 0;
+      buildMinHeap(queue);
+      currentNode = queue[0];
 
-        for (let i = 0; i < openList.length; i++) {
-          let current_f_cost = openList[i].f_cost;
-          let current_h_cost = openList[i].h_cost;
-
-          if (current_f_cost < min_f_cost) {
-            min_f_cost = current_f_cost;
-            min_h_cost = current_h_cost;
-            index_min_f_cost = i;
-          } else if (current_f_cost === min_f_cost) {
-            if (current_h_cost < min_h_cost) { //if same fCost, find lower hCost
-              min_h_cost = current_h_cost;
-              index_min_f_cost = i;
-            }
-
-          }
-        }
-        currentNode = openList[index_min_f_cost];
-        indexOfCurrentNode = index_min_f_cost;
-      } else { //at startNode
-        currentNode = openList[0];
-      }
-
-      if (openList[indexOfCurrentNode] !== undefined) {
-        closedList.push(openList[indexOfCurrentNode]);
-        openList.splice(indexOfCurrentNode, 1);
+      if (currentNode !== undefined) {
+        closedList.push(currentNode);
+        heapDeleteMin(queue);
       }
 
       //if no possible path to endNode
@@ -977,16 +923,17 @@ console.log([...openList])
 
       //if end node is found
       if (currentNode.id === endNodeID) {
+        stopTimer();
         setGridStructureArray(tempGridStructureArray);
-        setOpenNodes(openList);
+        setOpenNodes(queue);
         setClosedNodes(closedList);
-        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+        setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode]);
+        setSearched(true);
         break;
       }
 
 
-      const current_row = currentNode.id.split("-")[0];
-      const current_column = currentNode.id.split("-")[1];
+      const [current_row, current_column] = currentNode.id.split("-");
 
       //search neighbours from top left to bottom right
       for (let i = -1; i < 2; i++) {
@@ -1015,28 +962,23 @@ console.log([...openList])
               )
                 continue;
 
-              //if neighbour is not in open
-              //or new path to neighbour is shorter , set fcost
-              const newFCost = getFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
+              //if neighbour is not in open or new path to neighbour is shorter , set acost
+              const newAcost = getAcost(row_to_be_searched, column_to_be_searched, currentNode.id);
               
               if (
-                !openList.some(cellObject => cellObject.id === id_to_be_searched) || 
-                newFCost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].f_cost
+                !queue.some(cellObject => cellObject.id === id_to_be_searched) || 
+                newAcost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].a_cost
               ) {
-                //set fcost
-                setFcost(row_to_be_searched, column_to_be_searched, currentNode.id);
-
-                //set parent of neighbour to current
-
+                setAcost(row_to_be_searched, column_to_be_searched, currentNode.id);//set acost
 
                 //if neighbour is not in open
-                if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
-                  // add neighbour to open
-                  openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                if (!queue.some(cellObject => cellObject.id === id_to_be_searched)) {
+                  heapInsert(queue, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);// add neighbour to open
 
                   takeGridSnapshot();//add snapshot for the iteration feature
                 } else { //update cellObject in openList if new path to neighbour is shorter
-                  openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                  heapDelete(queue, id_to_be_searched);
+                  heapInsert(queue, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
 
                   takeGridSnapshot();//add snapshot for the iteration feature
                 }
@@ -1046,7 +988,14 @@ console.log([...openList])
         }
       }
     }
-    */
+  }
+
+  function startTimer() {
+    searchTimeStart = performance.now();
+  }
+
+  function stopTimer() {
+    setSearchTime((performance.now() - searchTimeStart).toFixed(2))
   }
 
   console.log(gridStructureArray);
@@ -1074,6 +1023,7 @@ console.log([...openList])
           gCost={cellObject.g_cost ? cellObject.g_cost : ""}
           hCost={cellObject.h_cost ? cellObject.h_cost : ""}
           fCost={cellObject.f_cost ? cellObject.f_cost : ""}
+          aCost={cellObject.a_cost !== -1 ? cellObject.a_cost : ""}
           open={openNodes.some(nodeObject => nodeObject.id === id)}
           closed={closedNodes.some(nodeObject => nodeObject.id === id)}
           shortestPath={shortestPath.includes(id)}
@@ -1086,11 +1036,8 @@ console.log([...openList])
 
   return (
     <>
-      <div id="startSearch" onClick={startSearch}>
+      <div id="startSearch" onClick={dijkstrasSearch}>
         Search
-      </div>
-      <div id="next" onClick={nextIteration}>
-        Next
       </div>
       <div
         id="grid"
@@ -1099,6 +1046,15 @@ console.log([...openList])
         }}
       >
         {cells}
+      </div>
+      <div id="play" onClick={() => nextIteration(true, 30)} className={searched ? "" : "hidden"}>
+        Play
+      </div>
+      <div id="next" onClick={() => nextIteration(false)} className={searched ? "" : "hidden"}>
+        Next
+      </div>
+      <div id="timer" className={searched ? "" : "hidden"}>
+        Completed in: {searchTime}ms
       </div>
     </>
   );

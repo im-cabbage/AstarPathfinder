@@ -1,11 +1,6 @@
 import { useState } from "react";
 import Grid from "./grid";
 
-//settings :
-//algorithm(a*, bfs, dfs, dijkstra)
-//gridsize
-//cell type selector / cellType: start, end, wall, blank
-//search button
 export default function SettingsPanel() {
   const [settings, setSettings] = useState({
     gridSize: 10,

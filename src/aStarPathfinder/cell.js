@@ -11,6 +11,7 @@ export default function Cell({
   gCost,
   hCost,
   fCost,
+  aCost,
   open,
   closed,
   shortestPath,
@@ -70,6 +71,7 @@ export default function Cell({
       <div className="gCost">{gCost}</div>
       <div className="hCost">{hCost}</div>
       <div className="fCost">{fCost}</div>
+      <div className="aCost">{aCost}</div>
     </div>
   );
 }
