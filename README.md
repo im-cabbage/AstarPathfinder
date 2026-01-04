@@ -1,26 +1,19 @@
 # Notes
 working on :
-- ~~state mutation~~
-- ~~open or closed indicator~~
-- ~~shortest path indicator~~
-- ~~parent indicator~~
-- ~~no crossing diagonal walls~~
-- ~~ctrl + lclick = start~~
-- ~~alt + lclick = end~~
-- ~~bug: if closedList is empty n cant find endNode~~
+- Dijkstra's
+- iterate buttons
+- completion timer
+- compare algo
+- clean up frontend
+- add extra features
 
 Features to be added :
-- implement n compare algo
-- Dijkstra's 
-- BFS
-- DFS
 
 clean up frontend
 - save grid design to localstorage
 - reset grid button
 - create random maze
 - highlight to draw wall (left click down + drag over cells)
-- step by step function (iteration)
 - legend table
 
 

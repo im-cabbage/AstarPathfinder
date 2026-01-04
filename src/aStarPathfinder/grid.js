@@ -143,6 +143,8 @@ export default function Grid({ settings }) {
     }
   }
 
+  
+
   function startSearch() {
     /*
     G cost: distance from starting node
@@ -171,7 +173,83 @@ export default function Grid({ settings }) {
 
     openList.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
 
-    
+    function minHeapify(arr, heapSize, i) {
+      let l = 2*i + 1;
+      let r = 2*i + 2;
+
+      let smallest = i;
+
+      if (l < heapSize && arr[l].f_cost <= arr[smallest].f_cost) { // If left child exists and is smaller than root
+        if (arr[l].f_cost < arr[smallest].f_cost) {
+          smallest = l;
+        } else { //if same fCost, lower hCost is smaller 
+          if (arr[l].h_cost < arr[smallest].h_cost) {
+            smallest = l;
+          }
+        }
+      }
+
+      if (r < heapSize && arr[r].f_cost <= arr[smallest].f_cost) { // If left child exists and is smaller than root
+        if (arr[r].f_cost < arr[smallest].f_cost) {
+          smallest = r;
+        } else { //if same fCost, lower hCost is smaller 
+          if (arr[r].h_cost < arr[smallest].h_cost) {
+            smallest = r;
+          }
+        }
+      }
+
+      // If smallest is not root, 
+      // swap and recursively heapify
+      if (smallest !== i) {
+        let temp = arr[i];
+        arr[i] = arr[smallest];
+        arr[smallest] = temp;
+      
+        minHeapify(arr, heapSize, smallest);
+      }
+    }
+
+    function buildMinHeap(arr) {
+      let heapSize = arr.length;
+
+      //formula to get leaf node: arr[floor(heapSize/2)] to arr[heapSize - 1]
+      //perform heapify from last non-leaf node up to root 
+      for(let i = Math.floor(heapSize / 2) - 1 ; i >= 0; i--) {
+        minHeapify(arr, heapSize, i);
+      }
+    }
+
+    function heapInsert(heap, value) {
+      heap.push(value); // Add the new element to the end of the heap
+
+      buildMinHeap(heap);
+    }
+
+    function heapDeleteMin(heap) {
+      heap[0] = heap[heap.length - 1];
+      heap.pop();
+
+      buildMinHeap(heap);
+    }
+
+    function heapDelete(heap, id) {
+      // Find the index of the element to be deleted
+      let index = -1;
+      for (let i = 0; i < heap.length; i++) {
+          if (heap[i].id === id) {
+              index = i;
+              break;
+          }
+      }
+
+      // Replace the element to be deleted with the last element
+      heap[index] = heap[heap.length - 1];
+      
+      heap.pop();
+
+      buildMinHeap(heap);
+    }
 
     function getGcost(row, column, currentNodeId) {
       //path is an array of parentIDs
@@ -315,6 +393,7 @@ export default function Grid({ settings }) {
 
     
     while (true) {
+      /*
       //find node with lowest f_cost in openlist
       if (openList.length > 1) {
         // currentNode = openList.reduce((minVal, curVal) => (curVal < minVal ? curVal : minVal), openList[0]);
@@ -343,12 +422,22 @@ export default function Grid({ settings }) {
       } else { //at startNode
         currentNode = openList[0];
       }
+*/
+      buildMinHeap(openList);
+      currentNode = openList[0];
 
+      /*
       if (openList[indexOfCurrentNode] !== undefined) {
         closedList.push(openList[indexOfCurrentNode]);
         openList.splice(indexOfCurrentNode, 1);
       }
+      */
+      if (currentNode !== undefined) {
+        closedList.push(currentNode);
+        heapDeleteMin(openList);
+      }
 
+console.log([...openList])
       //if no possible path to endNode
       if (!currentNode) {
         setGridStructureArray(tempGridStructureArray);
@@ -416,11 +505,14 @@ export default function Grid({ settings }) {
                 //if neighbour is not in open
                 if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
                   // add neighbour to open
-                  openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                  // openList.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                  heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
 
                   takeGridSnapshot();//add snapshot for the iteration feature
                 } else { //update cellObject in openList if new path to neighbour is shorter
-                  openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                  // openList.splice(openList.findIndex(cellObject => cellObject.id === id_to_be_searched), 1, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                  heapDelete(openList, id_to_be_searched);
+                  heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
 
                   takeGridSnapshot();//add snapshot for the iteration feature
                 }
@@ -463,7 +555,7 @@ export default function Grid({ settings }) {
   function nextIteration() {
     
     const currentSnapshot = snapshotsOfgridStructureArray[snapshotIndex];
-    
+
     setOpenNodes(currentSnapshot.openNodes);
     setClosedNodes(currentSnapshot.closedNodes);
     setCurrentCell(currentSnapshot.currentCell);
@@ -472,17 +564,15 @@ export default function Grid({ settings }) {
 
     if (snapshotIndex === snapshotsOfgridStructureArray.length - 1) {
       const [endNodeRow, endNodeColumn] = endCell.split("-");
-      setShortestPath([...currentSnapshot.gridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode])
+      setShortestPath([...currentSnapshot.gridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode]);
+
+      setSnapshotIndex(0);
     } else {
       setShortestPath([]);
       setSnapshotIndex(snapshotIndex + 1);
 
-      setTimeout(() => document.getElementById("next").click(), 30);
-      console.log(snapshotIndex)
-      // setTimeout(() => nextIteration(), 100);
+      // setTimeout(() => document.getElementById("next").click(), 30);
     }
-      
-
     // setTimeout(() => flushSync(()=>{console.log("d");setGridStructureArray(snapshotsOfgridStructureArray[snapshotIndex].gridStructureArray);setSnapshotIndex(snapshotIndex + 1);nextIteration()}), 100)
   }
 
@@ -696,7 +786,7 @@ export default function Grid({ settings }) {
     let indexOfCurrentNode = 0;
 
     queue.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //[{id: , f_cost: , path: [first,..] }, ]
-
+/*
     
 
     function getGcost(row, column, currentNodeId) {
@@ -956,6 +1046,7 @@ export default function Grid({ settings }) {
         }
       }
     }
+    */
   }
 
   console.log(gridStructureArray);
@@ -995,7 +1086,7 @@ export default function Grid({ settings }) {
 
   return (
     <>
-      <div id="startSearch" onClick={depthFirstSearch}>
+      <div id="startSearch" onClick={startSearch}>
         Search
       </div>
       <div id="next" onClick={nextIteration}>
