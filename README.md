@@ -2,14 +2,18 @@
 working on :
 - ~~Dijkstra's~~
 - ~~completion timer~~
-  mon
+
+mon
 - iterate buttons + iteration indicator eg. 23/122 
 - compare algo
-  tues
+
+tues
 - clean up frontend
-  wed
+
+wed
 - add extra features
-  thurs
+
+thurs
 - documentation
 
 Features to be added :
