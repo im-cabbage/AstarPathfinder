@@ -17,9 +17,7 @@ wed
 thurs
 - documentation
 
-Features to be added :
-
-clean up frontend
+extra features
 - save grid design to localstorage
 - reset grid button
 - create random maze
