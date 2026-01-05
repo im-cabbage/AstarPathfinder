@@ -2,7 +2,8 @@
 working on :
 - ~~Dijkstra's~~
 - ~~completion timer~~
-- iterate buttons + iteration indicator eg. 23/122
+- ~~iteration indicator eg. 23/122~~
+- iterate buttons 
 - compare algo
 - clean up frontend
 - add extra features

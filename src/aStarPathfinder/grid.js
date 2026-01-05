@@ -1053,6 +1053,9 @@ export default function Grid({ settings }) {
       <div id="next" onClick={() => nextIteration(false)} className={searched ? "" : "hidden"}>
         Next
       </div>
+      <div id="iterationStatus" className={searched ? "" : "hidden"}>
+        {snapshotIndex + 1} / {snapshotsOfgridStructureArray.length}
+      </div>
       <div id="timer" className={searched ? "" : "hidden"}>
         Completed in: {searchTime}ms
       </div>
