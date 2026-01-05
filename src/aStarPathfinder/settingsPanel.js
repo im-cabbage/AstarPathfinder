@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Grid from "./grid";
 
 export default function SettingsPanel() {
@@ -6,6 +6,12 @@ export default function SettingsPanel() {
     gridSize: 10,
     cellTypeSelector: "",
   });
+  const [startCell, setStartCell] = useState("");
+  const [endCell, setEndCell] = useState("");
+  const [wallCellArray, setWallCellArray] = useState([]);
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState("astar");
+  const searchAlgorithmFunctionsRef = useRef(null);
+  const [searchCompleted, setSearchCompleted] = useState(false);
 
   function changeCellTypeSelector(selector) {
     switch (selector) {
@@ -14,27 +20,18 @@ export default function SettingsPanel() {
           ...settings,
           cellTypeSelector: "start",
         });
-        document.getElementById("start").classList.add("selected");
-        document.getElementById("end").classList.remove("selected");
-        document.getElementById("wall").classList.remove("selected");
         break;
       case "end":
         setSettings({
           ...settings,
           cellTypeSelector: "end",
         });
-        document.getElementById("start").classList.remove("selected");
-        document.getElementById("end").classList.add("selected");
-        document.getElementById("wall").classList.remove("selected");
         break;
       case "wall":
         setSettings({
           ...settings,
           cellTypeSelector: "wall",
         });
-        document.getElementById("start").classList.remove("selected");
-        document.getElementById("end").classList.remove("selected");
-        document.getElementById("wall").classList.add("selected");
         break;
 
       default:
@@ -46,6 +43,22 @@ export default function SettingsPanel() {
     <>
       <div id="settingsPanel">
         <div id="cellSelector">
+          <select 
+            id="algorithmSelector"
+            onChange={(e) =>
+              setSelectedAlgorithm(e.target.value)
+            }
+          >
+            <optgroup label="Weighted Graph">
+              <option value="astar">A* Search Algorithm</option>
+              <option value="dijkstras">Dijkstra's Algorithm</option>
+            </optgroup>
+            <hr />
+            <optgroup label="Unweighted Graph">
+              <option value="bfs">Breadth-First Search</option>
+              <option value="dfs">Depth-First Search</option>
+            </optgroup>
+          </select>
           <input
             id="gridSize"
             type="number"
@@ -62,6 +75,7 @@ export default function SettingsPanel() {
             onClick={() => {
               changeCellTypeSelector("start");
             }}
+            className={settings.cellTypeSelector === "start" ? "selected" : ""}
           >
             Start
           </div>
@@ -70,6 +84,7 @@ export default function SettingsPanel() {
             onClick={() => {
               changeCellTypeSelector("end");
             }}
+            className={settings.cellTypeSelector === "end" ? "selected" : ""}
           >
             End
           </div>
@@ -78,13 +93,50 @@ export default function SettingsPanel() {
             onClick={() => {
               changeCellTypeSelector("wall");
             }}
+            className={settings.cellTypeSelector === "wall" ? "selected" : ""}
           >
             Wall
+          </div>
+          <div
+            id="startSearch"
+            onClick={() => {
+              switch (selectedAlgorithm) {
+                case "astar":
+                  searchAlgorithmFunctionsRef.current.astarSearch();
+                  setSearchCompleted(true);
+                  break;
+                case "dijkstras":
+                  searchAlgorithmFunctionsRef.current.dijkstrasSearch();
+                  setSearchCompleted(true);
+                  break;
+                case "bfs":
+                  searchAlgorithmFunctionsRef.current.breadthFirstSearch();
+                  setSearchCompleted(true);
+                  break;
+                case "dfs":
+                  searchAlgorithmFunctionsRef.current.depthFirstSearch();
+                  setSearchCompleted(true);
+                  break;
+                default:
+                  break;
+              }
+            }}>
+            Search
           </div>
         </div>
       </div>
       {/* using key attribute on grid resets the entire grid state when gridsize changes*/}
-      <Grid key={settings.gridSize} settings={settings}/> 
+      <Grid 
+        key={settings.gridSize}
+        searchAlgorithmFunctionsRef={searchAlgorithmFunctionsRef}
+        settings={settings}
+        startCell={startCell}
+        setStartCell={setStartCell}
+        endCell={endCell}
+        setEndCell={setEndCell}
+        wallCellArray={wallCellArray}
+        setWallCellArray={setWallCellArray}
+        />
     </>
   );
 }

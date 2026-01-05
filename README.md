@@ -5,14 +5,14 @@ working on :
 
 mon
 - ~~iteration indicator eg. 23/122~~
-- iterate buttons  
-- compare algo
 
 tues
-- clean up frontend
+- major refactor (shift grid states to settingsPanel.js(parent))
+- compare algo (show %diff)
+- add extra features
 
 wed
-- add extra features
+- clean up frontend
 
 thurs
 - documentation
