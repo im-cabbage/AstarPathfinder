@@ -29,6 +29,19 @@ class CellObject {
   }
 }
 
+function initGridStructureArray(gridSize) {
+  let tempGridStructureArray = [];
+  for (let row = 1; row <= gridSize; row++) {
+    let rowArray = [];
+    for (let column = 1; column <= gridSize; column++) {
+      const id = `${row}-${column}`;
+      rowArray.push(new CellObject(id));
+    }
+    tempGridStructureArray.push(rowArray);
+  }
+  return tempGridStructureArray;
+}
+
 class GridObject {
   algorithm;
   completedSearch = false;
@@ -176,12 +189,9 @@ console.log(gridSnapshots)
     startTimer();
     // resetSnapshotsOfgridStructureArray();
 
-    // spread syntax to create a copy of the original array first
-    // However, even if you copy an array, you can’t mutate existing items inside of it directly. 
-    // This is because copying is shallow— the new array will contain the same items as the original one. 
-    // So if you modify an object inside the copied array, you are mutating the existing state.
+    
     let isSearchCompleted = false;
-    let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
+    let tempGridStructureArray = initGridStructureArray(settings.gridSize);
     let openList = [];
     let closedList = [];
 
@@ -190,7 +200,7 @@ console.log(gridSnapshots)
 
     let currentNode;
 
-    openList.push(gridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
+    openList.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //openlist = [{id: , f_cost: , path: [first,..] }, ]
 
     function minHeapify(arr, heapSize, i) {
       let l = 2*i + 1;
