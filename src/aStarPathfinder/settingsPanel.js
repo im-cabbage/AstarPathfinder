@@ -14,16 +14,17 @@ class CellObject {
   cellType; // start, end, wall, open, visited, shortestPath
   isCurrent = false;
 
-  constructor(id, parentID, a_cost, g_cost, h_cost, f_cost) {
+  constructor(id, a_cost, g_cost, h_cost, f_cost, cellType, pathFromStartingNode) {
     this.id = id;
     this.row = id.split("-")[0];
     this.column = id.split("-")[1];
 
-    // if (parentID) this.parentID = parentID;
-    // if (a_cost) this.a_cost = a_cost;
-    // if (g_cost) this.g_cost = g_cost;
-    // if (h_cost) this.h_cost = h_cost;
-    // if (h_cost) this.f_cost = f_cost;
+    if (a_cost) this.a_cost = a_cost;
+    if (g_cost) this.g_cost = g_cost;
+    if (h_cost) this.h_cost = h_cost;
+    if (h_cost) this.f_cost = f_cost;
+    if (cellType) this.cellType = cellType;
+    if (pathFromStartingNode) this.pathFromStartingNode = pathFromStartingNode;
     
   }
 }
@@ -35,17 +36,25 @@ class GridObject {
 
   gridStructureArray = [];
 
-  constructor(algorithm, gridSize) {
+  constructor(algorithm, gridSize, newGridStructureArray, completedSearch) {
     this.algorithm = algorithm;
     this.gridSize = gridSize;
 
-    for (let row = 1; row <= gridSize; row++) {
-      let rowArray = [];
-      for (let column = 1; column <= gridSize; column++) {
-        const id = `${row}-${column}`;
-        rowArray.push(new CellObject(id));
+    if (newGridStructureArray) {
+      this.gridStructureArray = newGridStructureArray;
+    } else {
+      for (let row = 1; row <= gridSize; row++) {
+        let rowArray = [];
+        for (let column = 1; column <= gridSize; column++) {
+          const id = `${row}-${column}`;
+          rowArray.push(new CellObject(id));
+        }
+        this.gridStructureArray.push(rowArray);
       }
-      this.gridStructureArray.push(rowArray);
+    }
+
+    if (completedSearch) {
+      this.completedSearch = completedSearch;
     }
   }
 }
@@ -60,11 +69,19 @@ export default function SettingsPanel() {
   const [wallNodesIDArray, setWallNodesIDArray] = useState([]);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("astar");
   const searchAlgorithmFunctionsRef = useRef(null);
-  const [grids, setGrids] = useState(() => [new GridObject(selectedAlgorithm, settings.gridSize)]);
+  const gridSnapshotsRef = useRef([]);
+  const gridSnapshots = gridSnapshotsRef.current;
+  const [grids, setGrids] = useState(() => initGrids());
 console.log(grids)
-  const gridSnapshots = useRef([]).current;
-  // const [searchTime, setSearchTime] = useState(null);
-  // let searchTimeStart;
+console.log(gridSnapshots)
+  
+  let searchTimeStart;
+
+  function initGrids() {
+    gridSnapshotsRef.current = [[]];
+
+    return [new GridObject(selectedAlgorithm, settings.gridSize)];
+  }
 
   function changeCellTypeSelector(selector) {
     switch (selector) {
@@ -131,10 +148,6 @@ console.log(grids)
     }
   }
 
-  function updateGridStructureArray(openList, visitedList,) {
-
-  }
-
   function takeGridSnapshot(gridIndex, gridStructureArray) {
     gridSnapshots[gridIndex].push(gridStructureArray);
   }
@@ -142,11 +155,12 @@ console.log(grids)
   function setGrid(newGridStructureArray, gridIndexParam) {
     setGrids(grids.map((grid, gridIndex) => {
       if (gridIndex === gridIndexParam) {
-        return newGridStructureArray;
+        return new GridObject(grid.algorithm, grid.gridSize, newGridStructureArray, true);
       } else {
         return grid;
       }
     }))
+    
   }
 
   function astarSearch(gridStructureArray, gridIndex) {
@@ -166,6 +180,7 @@ console.log(grids)
     // However, even if you copy an array, you can’t mutate existing items inside of it directly. 
     // This is because copying is shallow— the new array will contain the same items as the original one. 
     // So if you modify an object inside the copied array, you are mutating the existing state.
+    let isSearchCompleted = false;
     let tempGridStructureArray = [...gridStructureArray]; //still points to the gridStructureArray object, it still can be mutated, hence need to create a new copy and replace!
     let openList = [];
     let closedList = [];
@@ -381,6 +396,42 @@ console.log(grids)
       currentNode.h_cost = hCost;
       currentNode.f_cost = fCost;
     }
+
+    function updateTempGridStructureArray( openList, visitedList, isSearchCompleted) {
+      const endNodePathFromStartingNode = tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode;
+
+      tempGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {
+        const row = rowIndex + 1;
+
+        return rowArray.map((cellObject, columnIndex) => {
+          const column = columnIndex + 1;
+          const id = `${row}-${column}`;
+          const g_cost = cellObject.g_cost;
+          const h_cost = cellObject.h_cost;
+          const f_cost = cellObject.f_cost;
+          const pathFromStartingNode = [...cellObject.pathFromStartingNode];
+
+          if (isSearchCompleted && endNodePathFromStartingNode.includes(id)) { // update shortestPath
+            const cellType = "shortestPath";
+
+            const newCellObject = new CellObject(id, undefined, g_cost, h_cost, f_cost, cellType, pathFromStartingNode);
+            return newCellObject;
+          } else if (openList.some((olCellObject) => olCellObject.id === id)) { // update openList
+            const cellType = "open";
+
+            const newCellObject = new CellObject(id, undefined, g_cost, h_cost, f_cost, cellType, pathFromStartingNode);
+            return newCellObject;
+          } else if (visitedList.some((vlCellObject) => vlCellObject.id === id)) { //update visitedList
+            const cellType = "closed";
+
+            const newCellObject = new CellObject(id, undefined, g_cost, h_cost, f_cost, cellType, pathFromStartingNode);
+            return newCellObject;
+          } else {
+            return cellObject;
+          }
+        })
+      })
+    }
     
     while (true) {
       buildMinHeap(openList);
@@ -399,16 +450,15 @@ console.log(grids)
         break;
       }
 
+      updateTempGridStructureArray(openList, closedList, isSearchCompleted);
       takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
 
       //if end node is found
       if (currentNode.id === endNodeID) {
         stopTimer();
+        isSearchCompleted = true;
+        updateTempGridStructureArray(openList, closedList, isSearchCompleted);
         setGrid(tempGridStructureArray, gridIndex);
-        // setOpenNodes(openList);
-        // setClosedNodes(closedList);
-        // setShortestPath([...tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode]);
-        // setSearched(true);
         break;
       }
 
@@ -455,14 +505,13 @@ console.log(grids)
                 //if neighbour is not in open
                 if (!openList.some(cellObject => cellObject.id === id_to_be_searched)) {
                   heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);// add neighbour to open
-
-                  takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
                 } else { //update cellObject in openList if new path to neighbour is shorter
                   heapDelete(openList, id_to_be_searched);
                   heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
-
-                  takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
                 }
+
+                updateTempGridStructureArray(openList, closedList, isSearchCompleted);
+                takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
               } 
             }
           }
@@ -476,7 +525,7 @@ console.log(grids)
   }
 
   function stopTimer() {
-    setSearchTime((performance.now() - searchTimeStart).toFixed(2))
+    // setSearchTime((performance.now() - searchTimeStart).toFixed(2))
   }
 
 
@@ -543,7 +592,7 @@ console.log(grids)
             onClick={() => {
               grids.forEach((gridObject, index) => {
                 const gridStructureArray = gridObject.gridStructureArray;
-                const gridAlgorithm = gridObject.gridAlgorithm;
+                const gridAlgorithm = gridObject.algorithm;
                 switch (gridAlgorithm) {
                   case "astar":
                     astarSearch(gridStructureArray, index);

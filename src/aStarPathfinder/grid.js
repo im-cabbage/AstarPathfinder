@@ -31,19 +31,19 @@ export default function Grid({
   setStartNodeID,
   endNodeID,
   setEndNodeID,
-  wallCellArray,
-  setWallCellArray,
+  wallNodesIDArray,
+  setWallNodesIDArray,
   astarSearch
 }) {
   const gridSize = settings.gridSize;
   const cellTypeSelector = settings.cellTypeSelector;
   const [searched, setSearched] = useState(false); 
-  const [openNodes, setOpenNodes] = useState([]); 
-  const [closedNodes, setClosedNodes] = useState([]);
-  const [shortestPath, setShortestPath] = useState([]);
+  // const [openNodes, setOpenNodes] = useState([]); 
+  // const [closedNodes, setClosedNodes] = useState([]);
+  // const [shortestPath, setShortestPath] = useState([]);
   // const [gridStructureArray, setGridStructureArray] = useState(() => initGridStructureArray());
 
-  const [currentCell, setCurrentCell] = useState("");
+  // const [currentCell, setCurrentCell] = useState("");
   const [snapshotIndex, setSnapshotIndex] = useState(0);
   const autoplayerRef = useRef(null);
   
@@ -65,40 +65,40 @@ console.log(gridStructureArray)
 
   function handleChangeCellType(e, id) {
     if (e.ctrlKey && e.type === "click") { //ctrl + lclick = add start node
-      if (endCell === id) setEndCell("");
-      if (wallCellArray.includes(id)) {
-        setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+      if (endNodeID === id) setEndNodeID("");
+      if (wallNodesIDArray.includes(id)) {
+        setWallNodesIDArray(wallNodesIDArray.filter((cellId) => cellId !== id));
       }
-      setStartCell(id);
+      setStartNodeID(id);
     } else if (e.altKey && e.type === "click") { //alt + lclick = add end node
-      if (startCell === id) setStartCell("");
-      if (wallCellArray.includes(id)) {
-        setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+      if (startNodeID === id) setStartNodeID("");
+      if (wallNodesIDArray.includes(id)) {
+        setWallNodesIDArray(wallNodesIDArray.filter((cellId) => cellId !== id));
       }
-      setEndCell(id);
+      setEndNodeID(id);
     } else {
       switch (cellTypeSelector) {
         case "start":
-          if (endCell === id) setEndCell("");
-          if (wallCellArray.includes(id)) {
-            setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+          if (endNodeID === id) setEndNodeID("");
+          if (wallNodesIDArray.includes(id)) {
+            setWallNodesIDArray(wallNodesIDArray.filter((cellId) => cellId !== id));
           }
-          setStartCell(id);
+          setStartNodeID(id);
           break;
         case "end":
-          if (startCell === id) setStartCell("");
-          if (wallCellArray.includes(id)) {
-            setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+          if (startNodeID === id) setStartNodeID("");
+          if (wallNodesIDArray.includes(id)) {
+            setWallNodesIDArray(wallNodesIDArray.filter((cellId) => cellId !== id));
           }
-          setEndCell(id);
+          setEndNodeID(id);
           break;
         case "wall":
-          if (wallCellArray.includes(id)) {
-            setWallCellArray(wallCellArray.filter((cellId) => cellId !== id));
+          if (wallNodesIDArray.includes(id)) {
+            setWallNodesIDArray(wallNodesIDArray.filter((cellId) => cellId !== id));
           } else {
-            if (startCell === id) setStartCell("");
-            if (endCell === id) setEndCell("");
-            setWallCellArray([...wallCellArray, id]);
+            if (startNodeID === id) setStartNodeID("");
+            if (endNodeID === id) setEndNodeID("");
+            setWallNodesIDArray([...wallNodesIDArray, id]);
           }
           break;
 
@@ -110,9 +110,9 @@ console.log(gridStructureArray)
 
   function handleDrawWall(e, id) {
     if (cellTypeSelector === "wall") {
-      if (startCell === id) setStartCell("");
-      if (endCell === id) setEndCell("");
-      setWallCellArray([...wallCellArray, id]);
+      if (startNodeID === id) setStartNodeID("");
+      if (endNodeID === id) setEndNodeID("");
+      setWallNodesIDArray([...wallNodesIDArray, id]);
     }
   }
 
@@ -671,18 +671,18 @@ console.log(gridStructureArray)
                 handleDrawWall={(e, id) => {
                   handleDrawWall(e, id);
                 }}
-                startCell={startCell === id}
-                endCell={endCell === id}
-                wallCell={wallCellArray.includes(id)}
+                startCell={startNodeID === id}
+                endCell={endNodeID === id}
+                wallCell={wallNodesIDArray.includes(id)}
                 gCost={cellObject.g_cost ? cellObject.g_cost : ""}
                 hCost={cellObject.h_cost ? cellObject.h_cost : ""}
                 fCost={cellObject.f_cost ? cellObject.f_cost : ""}
                 aCost={cellObject.a_cost !== -1 ? cellObject.a_cost : ""}
-                open={openNodes.some(nodeObject => nodeObject.id === id)}
-                closed={closedNodes.some(nodeObject => nodeObject.id === id)}
-                shortestPath={shortestPath.includes(id)}
+                open={cellObject.cellType === "open"}
+                closed={cellObject.cellType === "closed"}
+                shortestPath={cellObject.cellType === "shortestPath"}
                 // parentIndicator={findParentIndicator(row, column)}
-                currentCell={currentCell === id}
+                currentCell={cellObject.isCurrent}
               />
             )
           })
@@ -694,9 +694,9 @@ console.log(gridStructureArray)
       <div id="next" onClick={() => nextIteration(false)} className={searched ? "" : "hidden"}>
         Next
       </div> */}
-      <div id="iterationStatus" className={searched ? "" : "hidden"}>
+      {/* <div id="iterationStatus" className={searched ? "" : "hidden"}>
         {snapshotIndex + 1} / {snapshotsOfgridStructureArray.length}
-      </div>
+      </div> */}
       <div id="timer" className={searched ? "" : "hidden"}>
         {/* Completed in: {searchTime}ms */}
       </div>
