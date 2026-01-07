@@ -14,7 +14,7 @@ class CellObject {
   cellType; // start, end, wall, open, visited, shortestPath
   isCurrent = false;
 
-  constructor(id, a_cost, g_cost, h_cost, f_cost, cellType, pathFromStartingNode) {
+  constructor(id, a_cost, g_cost, h_cost, f_cost, cellType, pathFromStartingNode, isCurrent) {
     this.id = id;
     this.row = id.split("-")[0];
     this.column = id.split("-")[1];
@@ -25,7 +25,7 @@ class CellObject {
     if (h_cost) this.f_cost = f_cost;
     if (cellType) this.cellType = cellType;
     if (pathFromStartingNode) this.pathFromStartingNode = pathFromStartingNode;
-    
+    if (isCurrent) this.isCurrent = isCurrent;
   }
 }
 
@@ -49,28 +49,23 @@ class GridObject {
 
   gridStructureArray = [];
 
-  constructor(algorithm, gridSize, newGridStructureArray, completedSearch) {
+  constructor(gridSize, algorithm, newGridStructureArray, completedSearch, searchTime) {
     this.algorithm = algorithm;
-    this.gridSize = gridSize;
 
     if (newGridStructureArray) {
       this.gridStructureArray = newGridStructureArray;
     } else {
-      for (let row = 1; row <= gridSize; row++) {
-        let rowArray = [];
-        for (let column = 1; column <= gridSize; column++) {
-          const id = `${row}-${column}`;
-          rowArray.push(new CellObject(id));
-        }
-        this.gridStructureArray.push(rowArray);
-      }
+      this.gridStructureArray = initGridStructureArray(gridSize);
     }
 
     if (completedSearch) {
       this.completedSearch = completedSearch;
+      this.searchTime = searchTime;
     }
   }
 }
+
+
 
 export default function SettingsPanel() {
   const [settings, setSettings] = useState({
@@ -81,7 +76,6 @@ export default function SettingsPanel() {
   const [endNodeID, setEndNodeID] = useState("");
   const [wallNodesIDArray, setWallNodesIDArray] = useState([]);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("astar");
-  const searchAlgorithmFunctionsRef = useRef(null);
   const gridSnapshotsRef = useRef([]);
   const gridSnapshots = gridSnapshotsRef.current;
   const [grids, setGrids] = useState(() => initGrids());
@@ -93,7 +87,17 @@ console.log(gridSnapshots)
   function initGrids() {
     gridSnapshotsRef.current = [[]];
 
-    return [new GridObject(selectedAlgorithm, settings.gridSize)];
+    return [new GridObject(settings.gridSize, selectedAlgorithm)];
+  }
+
+  function getDeepCopyTempGridStructureArray(tempGridStructureArray) {
+    return tempGridStructureArray.map((rowArray, rowIndex) => {
+      return rowArray.map((cellObject, columnIndex) => {
+        const newCellObject = new CellObject(cellObject.id, cellObject.a_cost, cellObject.g_cost, cellObject.h_cost, cellObject.f_cost, cellObject.cellType, [...cellObject.pathFromStartingNode], cellObject.isCurrent);
+
+        return newCellObject;
+      })
+    })
   }
 
   function changeCellTypeSelector(selector) {
@@ -165,18 +169,19 @@ console.log(gridSnapshots)
     gridSnapshots[gridIndex].push(gridStructureArray);
   }
 
-  function setGrid(newGridStructureArray, gridIndexParam) {
+  function setGrid(gridIndexParam, newGridStructureArray, searchTime) {
+    const completedSearch = true;
+
     setGrids(grids.map((grid, gridIndex) => {
       if (gridIndex === gridIndexParam) {
-        return new GridObject(grid.algorithm, grid.gridSize, newGridStructureArray, true);
+        return new GridObject(grid.gridSize, grid.algorithm, newGridStructureArray, completedSearch, searchTime);
       } else {
         return grid;
       }
     }))
-    
   }
 
-  function astarSearch(gridStructureArray, gridIndex) {
+  function astarSearch(gridIndex) {
     
     // G cost: distance from starting node
     // H cost: distance from end node (Heuristic)
@@ -283,13 +288,13 @@ console.log(gridSnapshots)
     function getGcost(row, column, parentNodeID) { // G cost: distance from starting node using path array
 
       //if new path to neighbour is shorter, use parents path
-      let pathFromStartingNode = [...tempGridStructureArray[row - 1][column - 1].pathFromStartingNode]; //create shallow copy to avoid mutation
+      let pathFromStartingNode = tempGridStructureArray[row - 1][column - 1].pathFromStartingNode;
       const parentNode = pathFromStartingNode[pathFromStartingNode.length - 1];
       
       if (parentNode !== parentNodeID) {
-        const [currentNodeRow, currentNodeColumn] = parentNodeID.split("-");
-        const currentNodePathFromStartingNode = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].pathFromStartingNode;
-        pathFromStartingNode = [...currentNodePathFromStartingNode, parentNodeID];
+        const [parentNodeRow, parentNodeColumn] = parentNodeID.split("-");
+        const parentNodePathFromStartingNode = tempGridStructureArray[parentNodeRow - 1][parentNodeColumn - 1].pathFromStartingNode;
+        pathFromStartingNode = [...parentNodePathFromStartingNode, parentNodeID];
       }
       
       if (pathFromStartingNode.length === 1) { //only contains startNode
@@ -303,8 +308,7 @@ console.log(gridSnapshots)
           //get row n col of parent
           //straight or diagonal?
 
-          let currentNodeRow = parentNodeID.split("-")[0];
-          let currentNodecolumn = parentNodeID.split("-")[1];
+          let [currentNodeRow, currentNodecolumn] = parentNodeID.split("-");
 
           let parentNode;
           
@@ -375,75 +379,48 @@ console.log(gridSnapshots)
 
     function setCosts(row, column, parentNodeID) { //set f_cost, g_cost, h_cost for neighbour
       //add parentNode as parent into pathFromStartingNode before calling getGcost func
-      tempGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {
-        if (rowIndex === parseInt(row) - 1) {
-          const newRowArray = rowArray.map((cellObject, columnIndex) => {
-            if(columnIndex === parseInt(column) - 1) {
-              let newCellObject = new CellObject(cellObject.id); //create deep copy
-
-              const [ parentRow, parentColumn ] = parentNodeID.split("-");
-              const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
-              
-              //add parentNode as parent in pathFromStartingNode array
-              newCellObject.pathFromStartingNode = [...parentNodePathFromStartingNode, parentNodeID];
-
-              return newCellObject;
-            } else {
-              return cellObject;
-            }
-          });
-          return newRowArray;
-        } else {
-          return rowArray;
-        }
-      });
+      const currentNode = tempGridStructureArray[row - 1][column - 1];
+      const [ parentRow, parentColumn ] = parentNodeID.split("-");
+      const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+      currentNode.pathFromStartingNode = [...parentNodePathFromStartingNode, parentNodeID];
 
       const [fCost, gCost, hCost] = getCosts(row, column, parentNodeID);
 
-      //does not mutate original gridStructureArray since the child object has been replaced
-      const currentNode = tempGridStructureArray[row - 1][column - 1];
       currentNode.g_cost = gCost;
       currentNode.h_cost = hCost;
       currentNode.f_cost = fCost;
     }
 
-    function updateTempGridStructureArray( openList, visitedList, isSearchCompleted) {
-      const endNodePathFromStartingNode = tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode;
+    function updateTempGridStructureArray( openList, visitedList, currentNode) {
+      openList.forEach((cellObject) => {
+        const row = cellObject.row;
+        const column = cellObject.column;
 
-      tempGridStructureArray = tempGridStructureArray.map((rowArray, rowIndex) => {
-        const row = rowIndex + 1;
-
-        return rowArray.map((cellObject, columnIndex) => {
-          const column = columnIndex + 1;
-          const id = `${row}-${column}`;
-          const g_cost = cellObject.g_cost;
-          const h_cost = cellObject.h_cost;
-          const f_cost = cellObject.f_cost;
-          const pathFromStartingNode = [...cellObject.pathFromStartingNode];
-
-          if (isSearchCompleted && endNodePathFromStartingNode.includes(id)) { // update shortestPath
-            const cellType = "shortestPath";
-
-            const newCellObject = new CellObject(id, undefined, g_cost, h_cost, f_cost, cellType, pathFromStartingNode);
-            return newCellObject;
-          } else if (openList.some((olCellObject) => olCellObject.id === id)) { // update openList
-            const cellType = "open";
-
-            const newCellObject = new CellObject(id, undefined, g_cost, h_cost, f_cost, cellType, pathFromStartingNode);
-            return newCellObject;
-          } else if (visitedList.some((vlCellObject) => vlCellObject.id === id)) { //update visitedList
-            const cellType = "closed";
-
-            const newCellObject = new CellObject(id, undefined, g_cost, h_cost, f_cost, cellType, pathFromStartingNode);
-            return newCellObject;
-          } else {
-            return cellObject;
-          }
-        })
+        tempGridStructureArray[row - 1][column - 1].cellType = "open";
       })
+
+      visitedList.forEach((cellObject) => {
+        const row = cellObject.row;
+        const column = cellObject.column;
+
+        tempGridStructureArray[row - 1][column - 1].cellType = "closed";
+        tempGridStructureArray[row - 1][column - 1].isCurrent = false;
+      })
+
+      if (isSearchCompleted) {
+        const endNodePathFromStartingNode = tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode; //used for finding shortestPath
+        endNodePathFromStartingNode.forEach((id) => {
+          const [row, column] = id.split("-");
+
+          tempGridStructureArray[row - 1][column - 1].cellType = "shortestPath";
+        })
+      }
+
+      tempGridStructureArray[currentNode.row - 1][currentNode.column - 1].isCurrent = true;
     }
     
     while (true) {
+      tempGridStructureArray = getDeepCopyTempGridStructureArray(tempGridStructureArray);
       buildMinHeap(openList);
       currentNode = openList[0];
 
@@ -454,21 +431,23 @@ console.log(gridSnapshots)
 
       //if no possible path to endNode
       if (!currentNode) {
-        setGrid(tempGridStructureArray, gridIndex);
+        setGrid(gridIndex, tempGridStructureArray);
         console.log("Not possible to reach end Node");
         window.alert("Not possible to reach end Node");
         break;
       }
 
-      updateTempGridStructureArray(openList, closedList, isSearchCompleted);
+      console.log([...tempGridStructureArray])
+      updateTempGridStructureArray(openList, closedList, currentNode);
+      console.log([...tempGridStructureArray])
+
       takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
 
       //if end node is found
       if (currentNode.id === endNodeID) {
-        stopTimer();
         isSearchCompleted = true;
-        updateTempGridStructureArray(openList, closedList, isSearchCompleted);
-        setGrid(tempGridStructureArray, gridIndex);
+        updateTempGridStructureArray(openList, closedList, currentNode);
+        setGrid(gridIndex, tempGridStructureArray, getSearchTime());
         break;
       }
 
@@ -520,7 +499,7 @@ console.log(gridSnapshots)
                   heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
                 }
 
-                updateTempGridStructureArray(openList, closedList, isSearchCompleted);
+                updateTempGridStructureArray(openList, closedList, currentNode);
                 takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
               } 
             }
@@ -534,8 +513,20 @@ console.log(gridSnapshots)
     searchTimeStart = performance.now();
   }
 
-  function stopTimer() {
-    // setSearchTime((performance.now() - searchTimeStart).toFixed(2))
+  function getSearchTime() {
+    return (performance.now() - searchTimeStart).toFixed(2);
+  }
+
+  function setGridSnapshot(gridIndexParam, snapshotIndex) {
+    const newGridStructureArray = gridSnapshots[gridIndexParam][snapshotIndex];
+
+    setGrids(grids.map((grid, gridIndex) => {
+      if (gridIndex === gridIndexParam) {
+        return new GridObject(grid.gridSize, grid.algorithm, newGridStructureArray, grid.completedSearch, grid.searchTime);
+      } else {
+        return grid;
+      }
+    }))
   }
 
 
@@ -563,12 +554,20 @@ console.log(gridSnapshots)
             id="gridSize"
             type="number"
             defaultValue={10}
-            onChange={(e) =>
+            onChange={(e) => {
+              const newGridSize = e.target.value;
+
               setSettings({
                 ...settings,
-                gridSize: e.target.value,
-              })
-            }
+                gridSize: newGridSize,
+              });
+
+              setGrids(grids.map((grid) => {
+                const algorithm = grid.algorithm;
+
+                return new GridObject(newGridSize, algorithm);
+              }))
+            }}
           />
           <div
             id="start"
@@ -600,12 +599,11 @@ console.log(gridSnapshots)
           <div
             id="startSearch"
             onClick={() => {
-              grids.forEach((gridObject, index) => {
-                const gridStructureArray = gridObject.gridStructureArray;
+              grids.forEach((gridObject, gridIndex) => {
                 const gridAlgorithm = gridObject.algorithm;
                 switch (gridAlgorithm) {
                   case "astar":
-                    astarSearch(gridStructureArray, index);
+                    astarSearch(gridIndex);
                     break;
                   case "dijkstras":
                     // dijkstrasSearch();
@@ -625,16 +623,21 @@ console.log(gridSnapshots)
           </div>
         </div>
       </div>
-      {/* using key attribute on grid resets the entire grid state when gridsize changes*/}
-      {grids.map((gridObject) => {
+      
+      {grids.map((gridObject, gridIndex) => {
         const gridStructureArray = gridObject.gridStructureArray;
         const algorithm = gridObject.algorithm;
+        const completedSearch = gridObject.completedSearch;
+        const searchTime = gridObject.searchTime;
 
         return (
           <Grid 
-          key={algorithm + settings.gridSize}
+          key={algorithm + settings.gridSize} //using key attribute on grid resets the entire grid state when gridsize changes
           gridStructureArray={gridStructureArray}
-          searchAlgorithmFunctionsRef={searchAlgorithmFunctionsRef}
+          algorithm={algorithm}
+          gridIndex={gridIndex}
+          gridSnapshotsRef={gridSnapshotsRef}
+          setGridSnapshot={setGridSnapshot}
           settings={settings}
           startNodeID={startNodeID}
           setStartNodeID={setStartNodeID}
@@ -642,7 +645,8 @@ console.log(gridSnapshots)
           setEndNodeID={setEndNodeID}
           wallNodesIDArray={wallNodesIDArray}
           setWallNodesIDArray={setWallNodesIDArray}
-          astarSearch={astarSearch}
+          completedSearch={completedSearch}
+          searchTime={searchTime}
           />
           )
         })

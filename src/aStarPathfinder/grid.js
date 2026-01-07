@@ -25,7 +25,10 @@ class CellObject {
 
 export default function Grid({ 
   gridStructureArray,
-  searchAlgorithmFunctionsRef,
+  algorithm,
+  gridIndex,
+  gridSnapshotsRef,
+  setGridSnapshot,
   settings,
   startNodeID,
   setStartNodeID,
@@ -33,17 +36,12 @@ export default function Grid({
   setEndNodeID,
   wallNodesIDArray,
   setWallNodesIDArray,
-  astarSearch
+  completedSearch,
+  searchTime
 }) {
   const gridSize = settings.gridSize;
   const cellTypeSelector = settings.cellTypeSelector;
-  const [searched, setSearched] = useState(false); 
-  // const [openNodes, setOpenNodes] = useState([]); 
-  // const [closedNodes, setClosedNodes] = useState([]);
-  // const [shortestPath, setShortestPath] = useState([]);
-  // const [gridStructureArray, setGridStructureArray] = useState(() => initGridStructureArray());
-
-  // const [currentCell, setCurrentCell] = useState("");
+  const gridSnapshots = gridSnapshotsRef.current;
   const [snapshotIndex, setSnapshotIndex] = useState(0);
   const autoplayerRef = useRef(null);
   
@@ -150,32 +148,7 @@ console.log(gridStructureArray)
     snapshotsOfgridStructureArray.length = 0;
   }
 
-  function nextIteration(autoplay, autoplaySpeed) {
-    if(autoplaySpeed === undefined) clearTimeout(autoplayerRef.current)
-    const currentSnapshot = snapshotsOfgridStructureArray[snapshotIndex];
-
-    setOpenNodes(currentSnapshot.openNodes);
-    setClosedNodes(currentSnapshot.closedNodes);
-    setCurrentCell(currentSnapshot.currentCell);
-
-    setGridStructureArray(currentSnapshot.gridStructureArray);
-
-    if (snapshotIndex === snapshotsOfgridStructureArray.length - 1) {
-      const [endNodeRow, endNodeColumn] = endCell.split("-");
-      setShortestPath([...currentSnapshot.gridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode]);
-
-      setSnapshotIndex(0);
-    } else {
-      setShortestPath([]);
-      setSnapshotIndex(snapshotIndex + 1);
-
-      if (autoplay) {
-        autoplayerRef.current = setTimeout(() => document.getElementById("play").click(), autoplaySpeed);
-      } 
-
-    }
-    // setTimeout(() => flushSync(()=>{console.log("d");setGridStructureArray(snapshotsOfgridStructureArray[snapshotIndex].gridStructureArray);setSnapshotIndex(snapshotIndex + 1);nextIteration()}), 100)
-  }
+  
 
   function setParent(row, column, currentNodeId, tempGridStructureArray) { //set parent for neighbour
     const id = `${row}-${column}`;
@@ -646,6 +619,24 @@ console.log(gridStructureArray)
     depthFirstSearch: depthFirstSearch
   }
 */
+  function nextIteration(autoplay, autoplaySpeed) {
+    // if(autoplaySpeed === undefined) clearTimeout(autoplayerRef.current)
+
+    setGridSnapshot(gridIndex, snapshotIndex)
+
+    if (snapshotIndex === gridSnapshots.length - 1) {
+      setSnapshotIndex(0);
+    } else {
+      setSnapshotIndex(snapshotIndex + 1);
+
+      // if (autoplay) {
+      //   autoplayerRef.current = setTimeout(() => document.getElementById("play").click(), autoplaySpeed);
+      // } 
+    }
+    // setTimeout(() => flushSync(()=>{console.log("d");setGridStructureArray(snapshotsOfgridStructureArray[snapshotIndex].gridStructureArray);setSnapshotIndex(snapshotIndex + 1);nextIteration()}), 100)
+  }
+
+
   return (
     <>
       <div
@@ -688,17 +679,17 @@ console.log(gridStructureArray)
           })
         })}
       </div>
-      {/* <div id="play" onClick={() => nextIteration(true, 30)} className={searched ? "" : "hidden"}>
+      <div id="play" onClick={() => nextIteration(true, 30)} className={completedSearch ? "" : "hidden"}>
         Play
       </div>
-      <div id="next" onClick={() => nextIteration(false)} className={searched ? "" : "hidden"}>
+      <div id="next" onClick={() => nextIteration(false)} className={completedSearch ? "" : "hidden"}>
         Next
-      </div> */}
-      {/* <div id="iterationStatus" className={searched ? "" : "hidden"}>
-        {snapshotIndex + 1} / {snapshotsOfgridStructureArray.length}
-      </div> */}
-      <div id="timer" className={searched ? "" : "hidden"}>
-        {/* Completed in: {searchTime}ms */}
+      </div>
+      <div id="iterationStatus" className={completedSearch ? "" : "hidden"}>
+        {snapshotIndex + 1} / {gridSnapshots[gridIndex].length}
+      </div>
+      <div id="timer" className={completedSearch ? "" : "hidden"}>
+        Completed in: {searchTime}ms
       </div>
     </>
   );
