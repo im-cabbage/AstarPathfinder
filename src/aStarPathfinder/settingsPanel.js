@@ -45,11 +45,12 @@ function initGridStructureArray(gridSize) {
 class GridObject {
   algorithm;
   completedSearch = false;
+  snapshotIndex = -1;
   searchTime;
 
   gridStructureArray = [];
 
-  constructor(gridSize, algorithm, newGridStructureArray, completedSearch, searchTime) {
+  constructor(gridSize, algorithm, newGridStructureArray, completedSearch, searchTime, snapshotIndex) {
     this.algorithm = algorithm;
 
     if (newGridStructureArray) {
@@ -61,6 +62,9 @@ class GridObject {
     if (completedSearch) {
       this.completedSearch = completedSearch;
       this.searchTime = searchTime;
+      if (snapshotIndex !== undefined) {
+        this.snapshotIndex = snapshotIndex;
+      }
     }
   }
 }
@@ -78,27 +82,19 @@ export default function SettingsPanel() {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("astar");
   const gridSnapshotsRef = useRef([]);
   const gridSnapshots = gridSnapshotsRef.current;
+  const autoplayersRef = useRef([null]);
+  const autoplayers = autoplayersRef.current;
   const [grids, setGrids] = useState(() => initGrids());
-console.log(grids)
-console.log(gridSnapshots)
-  
   let searchTimeStart;
 
   function initGrids() {
     gridSnapshotsRef.current = [[]];
+    autoplayersRef.current = [[]];
 
     return [new GridObject(settings.gridSize, selectedAlgorithm)];
   }
 
-  function getDeepCopyTempGridStructureArray(tempGridStructureArray) {
-    return tempGridStructureArray.map((rowArray, rowIndex) => {
-      return rowArray.map((cellObject, columnIndex) => {
-        const newCellObject = new CellObject(cellObject.id, cellObject.a_cost, cellObject.g_cost, cellObject.h_cost, cellObject.f_cost, cellObject.cellType, [...cellObject.pathFromStartingNode], cellObject.isCurrent);
-
-        return newCellObject;
-      })
-    })
-  }
+  
 
   function changeCellTypeSelector(selector) {
     switch (selector) {
@@ -124,6 +120,18 @@ console.log(gridSnapshots)
       default:
         break;
     }
+  }
+
+  //get back
+  function handleChangeAlgorithm(newAlgorithm) {
+    setSelectedAlgorithm(newAlgorithm);
+    setGrids(grids.map((grid, gridIndex) => {
+      if (gridIndex === 0) {
+        return new GridObject(grid.gridSize, newAlgorithm, grid.gridStructureArray, grid.completedSearch, grid.searchTime);
+      } else {
+        return grid;
+      }
+    }))
   }
 
   function isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, searchedRow, searchedColumn) {
@@ -165,8 +173,17 @@ console.log(gridSnapshots)
     }
   }
 
+  function getDeepCopyTempGridStructureArray(tempGridStructureArray) {
+    return JSON.parse(JSON.stringify(tempGridStructureArray));
+  }
+
   function takeGridSnapshot(gridIndex, gridStructureArray) {
-    gridSnapshots[gridIndex].push(gridStructureArray);
+    const newGridStructureArray = getDeepCopyTempGridStructureArray(gridStructureArray);
+    gridSnapshots[gridIndex].push(newGridStructureArray);
+  }
+
+  function resetGridSnapshot(gridIndex) {
+    gridSnapshots[gridIndex] = [];
   }
 
   function setGrid(gridIndexParam, newGridStructureArray, searchTime) {
@@ -192,7 +209,7 @@ console.log(gridSnapshots)
     
 
     startTimer();
-    // resetSnapshotsOfgridStructureArray();
+    resetGridSnapshot(gridIndex);
 
     
     let isSearchCompleted = false;
@@ -420,7 +437,6 @@ console.log(gridSnapshots)
     }
     
     while (true) {
-      tempGridStructureArray = getDeepCopyTempGridStructureArray(tempGridStructureArray);
       buildMinHeap(openList);
       currentNode = openList[0];
 
@@ -437,23 +453,21 @@ console.log(gridSnapshots)
         break;
       }
 
-      console.log([...tempGridStructureArray])
       updateTempGridStructureArray(openList, closedList, currentNode);
-      console.log([...tempGridStructureArray])
-
       takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
 
       //if end node is found
       if (currentNode.id === endNodeID) {
         isSearchCompleted = true;
         updateTempGridStructureArray(openList, closedList, currentNode);
+        takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
         setGrid(gridIndex, tempGridStructureArray, getSearchTime());
         break;
       }
 
 
       const [current_row, current_column] = currentNode.id.split("-");
-      let gridSize = settings.gridSize;
+      const gridSize = settings.gridSize;
 
       //search neighbours from top left to bottom right
       for (let i = -1; i < 2; i++) {
@@ -509,6 +523,258 @@ console.log(gridSnapshots)
     }
   }
 
+  function dijkstrasSearch(gridIndex) {//uses min-heap priority queue (FIFO)
+
+    startTimer();
+    resetGridSnapshot(gridIndex);
+
+    
+    let isSearchCompleted = false;
+    let tempGridStructureArray = initGridStructureArray(settings.gridSize);
+    let queue = [];
+    let closedList = [];
+
+    const [startNodeRow, startNodeColumn] = startNodeID.split("-");
+    const [endNodeRow, endNodeColumn] = endNodeID.split("-");
+
+    let currentNode;
+
+    queue.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //[{id: , a_cost: , path: [first,..] }, ]
+    
+    function minHeapify(arr, heapSize, i) {
+      let l = 2*i + 1;
+      let r = 2*i + 2;
+
+      let smallest = i;
+
+      if (l < heapSize && arr[l].a_cost <= arr[smallest].a_cost) { // If left child exists and is smaller than root
+        if (arr[l].a_cost < arr[smallest].a_cost) {
+          smallest = l;
+        } else { //if same aCost, smaller row/col is smaller 
+          if (arr[l].row <= arr[smallest].row) {
+            if (arr[l].row < arr[smallest].row) {
+              smallest = l;
+            } else { //if same row, lower col is smaller
+              if (arr[l].column < arr[smallest].column) {
+                smallest = l;
+              }
+            }
+          }
+        }
+      }
+
+      if (r < heapSize && arr[r].a_cost <= arr[smallest].a_cost) { // If left child exists and is smaller than root
+        if (arr[r].a_cost < arr[smallest].a_cost) {
+          smallest = r;
+        } else { //if same aCost, smaller row/col is smaller 
+          if (arr[r].row <= arr[smallest].row) {
+            if (arr[r].row < arr[smallest].row) {
+              smallest = r;
+            } else { //if same row, lower col is smaller
+              if (arr[r].column < arr[smallest].column) {
+                smallest = r;
+              }
+            }
+          }
+        }
+      }
+
+      // If smallest is not root, 
+      // swap and recursively heapify
+      if (smallest !== i) {
+        let temp = arr[i];
+        arr[i] = arr[smallest];
+        arr[smallest] = temp;
+      
+        minHeapify(arr, heapSize, smallest);
+      }
+    }
+
+    function buildMinHeap(arr) {
+      let heapSize = arr.length;
+
+      //formula to get leaf node: arr[floor(heapSize/2)] to arr[heapSize - 1]
+      //perform heapify from last non-leaf node up to root 
+      for(let i = Math.floor(heapSize / 2) - 1 ; i >= 0; i--) {
+        minHeapify(arr, heapSize, i);
+      }
+    }
+
+    function heapInsert(heap, value) {
+      heap.push(value); // Add the new element to the end of the heap
+
+      buildMinHeap(heap);
+    }
+
+    function heapDeleteMin(heap) {
+      heap[0] = heap[heap.length - 1];
+      heap.pop();
+
+      buildMinHeap(heap);
+    }
+
+    function heapDelete(heap, id) {
+      // Find the index of the element to be deleted
+      let index = -1;
+      for (let i = 0; i < heap.length; i++) {
+          if (heap[i].id === id) {
+              index = i;
+              break;
+          }
+      }
+
+      // Replace the element to be deleted with the last element
+      heap[index] = heap[heap.length - 1];
+      
+      heap.pop();
+
+      buildMinHeap(heap);
+    }
+    
+    function getAcost(row, column, parentNodeId) {
+      let [currentNodeRow, currentNodeColumn] = parentNodeId.split("-").map((e)=>parseInt(e));
+      const currentNodeAcost = tempGridStructureArray[currentNodeRow - 1][currentNodeColumn - 1].a_cost;
+
+      if (row === currentNodeRow || column === currentNodeColumn) { //if straight path, add 10 to a_cost
+        if (currentNodeAcost === -1) {
+          return 10;
+        } else {
+          return currentNodeAcost + 10;
+        }
+      } else { //if diagonal path, add 14 to a_cost
+        if (currentNodeAcost === -1) {
+          return 14;
+        } else {
+          return currentNodeAcost + 14;
+        }
+      }
+    }
+
+    function setAcost(row, column, parentNodeID) {
+      const currentNode = tempGridStructureArray[row - 1][column - 1];
+      const [ parentRow, parentColumn ] = parentNodeID.split("-");
+      const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+      currentNode.pathFromStartingNode = [...parentNodePathFromStartingNode, parentNodeID];
+
+      currentNode.a_cost = getAcost(row, column, parentNodeID);
+    }
+
+    function updateTempGridStructureArray( queue, visitedList, currentNode) {
+      queue.forEach((cellObject) => {
+        const row = cellObject.row;
+        const column = cellObject.column;
+
+        tempGridStructureArray[row - 1][column - 1].cellType = "open";
+      })
+
+      visitedList.forEach((cellObject) => {
+        const row = cellObject.row;
+        const column = cellObject.column;
+
+        tempGridStructureArray[row - 1][column - 1].cellType = "closed";
+        tempGridStructureArray[row - 1][column - 1].isCurrent = false;
+      })
+
+      if (isSearchCompleted) {
+        const endNodePathFromStartingNode = tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode; //used for finding shortestPath
+        endNodePathFromStartingNode.forEach((id) => {
+          const [row, column] = id.split("-");
+
+          tempGridStructureArray[row - 1][column - 1].cellType = "shortestPath";
+        })
+      }
+
+      tempGridStructureArray[currentNode.row - 1][currentNode.column - 1].isCurrent = true;
+    }
+
+    
+    while (true) {
+      buildMinHeap(queue);
+      currentNode = queue[0];
+
+      if (currentNode !== undefined) {
+        closedList.push(currentNode);
+        heapDeleteMin(queue);
+      }
+
+      //if no possible path to endNode
+      if (!currentNode) {
+        setGrid(gridIndex, tempGridStructureArray);
+        console.log("Not possible to reach end Node");
+        window.alert("Not possible to reach end Node");
+        break;
+      }
+
+      updateTempGridStructureArray(queue, closedList, currentNode);
+      takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+
+      //if end node is found
+      if (currentNode.id === endNodeID) {
+        isSearchCompleted = true;
+        updateTempGridStructureArray(queue, closedList, currentNode);
+        takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+        setGrid(gridIndex, tempGridStructureArray, getSearchTime());
+        break;
+      }
+
+
+      const [current_row, current_column] = currentNode.id.split("-");
+      const gridSize = settings.gridSize;
+
+      //search neighbours from top left to bottom right
+      for (let i = -1; i < 2; i++) {
+        let row_to_be_searched = parseInt(current_row) + i;
+        
+        if (row_to_be_searched > 0 && row_to_be_searched <= gridSize) {
+          
+          for (let j = -1; j < 2; j++) {
+            let column_to_be_searched = parseInt(current_column) + j;
+            let id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+            if (id_to_be_searched === startNodeID) continue;
+
+            if (
+              column_to_be_searched > 0 &&
+              column_to_be_searched <= gridSize
+            ) {
+
+              //skip if neighbour is a wall or 
+              //is in closed list or
+              //is Opposite Diagonal Wall / no crossing diagonal walls
+              if (
+                wallNodesIDArray.includes(id_to_be_searched) ||
+                closedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+                isOppositeDiagonalWall(current_row, current_column, row_to_be_searched, column_to_be_searched, i, j)
+              )
+                continue;
+
+              //if neighbour is not in open or new path to neighbour is shorter , set acost
+              const newAcost = getAcost(row_to_be_searched, column_to_be_searched, currentNode.id);
+              
+              if (
+                !queue.some(cellObject => cellObject.id === id_to_be_searched) || 
+                newAcost < tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1].a_cost
+              ) {
+                setAcost(row_to_be_searched, column_to_be_searched, currentNode.id);//set acost
+
+                //if neighbour is not in open
+                if (!queue.some(cellObject => cellObject.id === id_to_be_searched)) {
+                  heapInsert(queue, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);// add neighbour to open
+                } else { //update cellObject in openList if new path to neighbour is shorter
+                  heapDelete(queue, id_to_be_searched);
+                  heapInsert(queue, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+                }
+
+                updateTempGridStructureArray(queue, closedList, currentNode);
+                takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+              } 
+            }
+          }
+        }
+      }
+    }
+  }
+
   function startTimer() {
     searchTimeStart = performance.now();
   }
@@ -517,16 +783,52 @@ console.log(gridSnapshots)
     return (performance.now() - searchTimeStart).toFixed(2);
   }
 
-  function setGridSnapshot(gridIndexParam, snapshotIndex) {
-    const newGridStructureArray = gridSnapshots[gridIndexParam][snapshotIndex];
+  function setGridSnapshot(gridIndexParam, initialSnapshotIndex, autoplay, autoplaySpeed) {
+    let gridStructureArray = gridSnapshots[gridIndexParam][initialSnapshotIndex];
+    let snapshotIndex = initialSnapshotIndex;
+    
+    function callSetGrids() {
+      setGrids((grids) => grids.map((grid, gridIndex) => {
+        if (gridIndex === gridIndexParam) {
+          return new GridObject(grid.gridSize, grid.algorithm, gridStructureArray, grid.completedSearch, grid.searchTime, snapshotIndex);
+        } else {
+          return grid;
+        }
+      }))
+    }
 
-    setGrids(grids.map((grid, gridIndex) => {
-      if (gridIndex === gridIndexParam) {
-        return new GridObject(grid.gridSize, grid.algorithm, newGridStructureArray, grid.completedSearch, grid.searchTime);
+    function clearAutoplayer(gridIndexParam) {
+      clearInterval(autoplayers[gridIndexParam]);
+      autoplayers[gridIndexParam] = null;
+    }
+
+    if (autoplay) {
+      autoplayers[gridIndexParam] = setInterval(() => {
+        if (snapshotIndex === gridSnapshots[gridIndexParam].length - 2) {
+          clearAutoplayer(gridIndexParam);
+        }
+
+        snapshotIndex = snapshotIndex + 1;
+
+        if (snapshotIndex === gridSnapshots[gridIndexParam].length) {
+          snapshotIndex = 0;
+        }
+
+        gridStructureArray = gridSnapshots[gridIndexParam][snapshotIndex];
+        callSetGrids();
+      }, autoplaySpeed);
+    } else {
+      clearAutoplayer(gridIndexParam);
+
+      if (snapshotIndex === gridSnapshots[gridIndexParam].length - 1) {
+        snapshotIndex = 0;
       } else {
-        return grid;
+        snapshotIndex = snapshotIndex + 1;
       }
-    }))
+      
+      gridStructureArray = gridSnapshots[gridIndexParam][snapshotIndex];
+      callSetGrids();
+    }
   }
 
 
@@ -537,7 +839,7 @@ console.log(gridSnapshots)
           <select 
             id="algorithmSelector"
             onChange={(e) =>
-              setSelectedAlgorithm(e.target.value)
+              handleChangeAlgorithm(e.target.value)
             }
           >
             <optgroup label="Weighted Graph">
@@ -606,13 +908,13 @@ console.log(gridSnapshots)
                     astarSearch(gridIndex);
                     break;
                   case "dijkstras":
-                    // dijkstrasSearch();
+                    dijkstrasSearch(gridIndex);
                     break;
                   case "bfs":
-                    // breadthFirstSearch();
+                    // breadthFirstSearch(gridIndex);
                     break;
                   case "dfs":
-                    // depthFirstSearch();
+                    // depthFirstSearch(gridIndex);
                     break;
                   default:
                     break;
@@ -628,16 +930,21 @@ console.log(gridSnapshots)
         const gridStructureArray = gridObject.gridStructureArray;
         const algorithm = gridObject.algorithm;
         const completedSearch = gridObject.completedSearch;
+        const snapshotIndex = gridObject.snapshotIndex;
         const searchTime = gridObject.searchTime;
+        const autoplayer = autoplayers[gridIndex]
 
         return (
           <Grid 
-          key={algorithm + settings.gridSize} //using key attribute on grid resets the entire grid state when gridsize changes
+          key={gridIndex.toString() + settings.gridSize} //using key attribute on grid resets the entire grid state when gridsize changes
+          gridID={gridIndex}
           gridStructureArray={gridStructureArray}
           algorithm={algorithm}
           gridIndex={gridIndex}
           gridSnapshotsRef={gridSnapshotsRef}
+          snapshotIndex={snapshotIndex}
           setGridSnapshot={setGridSnapshot}
+          autoplayer={autoplayer}
           settings={settings}
           startNodeID={startNodeID}
           setStartNodeID={setStartNodeID}
