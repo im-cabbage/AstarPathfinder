@@ -1,10 +1,15 @@
+#grids {
+    display: flex;
+    flex-wrap: wrap;
+}
+
 .selected {
     background-color: greenyellow;
 }
 
 .grid {
-    height: 1000px;
-    width: 1000px;
+    height: 600px;
+    width: 600px;
     display: grid;
     border: solid red;
     grid-template-rows: repeat( var(--gridSize, 10), 1fr);

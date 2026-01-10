@@ -66,7 +66,7 @@ export default function Cell({
         }
       }}
     >
-      {id}
+      {/* {id} */}
       <div className={parentIndicatorClassNames}></div>
       <div className="gCost">{gCost}</div>
       <div className="hCost">{hCost}</div>

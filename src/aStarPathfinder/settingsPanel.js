@@ -88,9 +88,12 @@ export default function SettingsPanel() {
   let searchTimeStart;
   const [startNodeRow, startNodeColumn] = startNodeID.split("-");
   const [endNodeRow, endNodeColumn] = endNodeID.split("-");
+  const weightedAlgorithms = ["astar", "dijkstras"];
+  const unWeightedAlgorithms = ["bfs", "dfs"];
+  const [compareAllMode, setCompareAllMode] = useState(false);
 
   function initGrids() {
-    gridSnapshotsRef.current = [[]];
+    gridSnapshotsRef.current = [[], [], [], []];
     autoplayersRef.current = [[]];
 
     return [new GridObject(settings.gridSize, selectedAlgorithm)];
@@ -124,8 +127,38 @@ export default function SettingsPanel() {
     }
   }
 
-  //get back
+  //fix
+  function toggleCompareAllMode() {
+    let algorithmOrder;
+    setCompareAllMode(!compareAllMode);
+
+    if (compareAllMode) {
+      switch (selectedAlgorithm) {
+        case "astar":
+          algorithmOrder = ["dijkstras", "bfs", "dfs"];
+          setGrids([...grids, ...algorithmOrder.map((algorithm) => new GridObject(settings.gridSize, algorithm))]);
+          break;
+        case "dijkstras":
+          algorithmOrder = ["astar", "bfs", "dfs"];
+          setGrids([...grids, ...algorithmOrder.map((algorithm) => new GridObject(settings.gridSize, algorithm))]);
+          break;
+        case "bfs":
+          algorithmOrder = ["dfs", "astar", "dijkstras"];
+          setGrids([...grids, ...algorithmOrder.map((algorithm) => new GridObject(settings.gridSize, algorithm))]);
+          break;
+        case "dfs":
+          algorithmOrder = ["bfs", "astar", "dijkstras"];
+          setGrids([...grids, ...algorithmOrder.map((algorithm) => new GridObject(settings.gridSize, algorithm))]);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  //fix
   function handleChangeAlgorithm(newAlgorithm) {
+    //handle changing all 4 grids algorithm
     setSelectedAlgorithm(newAlgorithm);
     setGrids(grids.map((grid, gridIndex) => {
       if (gridIndex === 0) {
@@ -191,13 +224,20 @@ export default function SettingsPanel() {
   function setGrid(gridIndexParam, newGridStructureArray, searchTime) {
     const completedSearch = true;
 
-    setGrids(grids.map((grid, gridIndex) => {
+    setGrids(grids => grids.map((grid, gridIndex) => {
       if (gridIndex === gridIndexParam) {
         return new GridObject(grid.gridSize, grid.algorithm, newGridStructureArray, completedSearch, searchTime);
       } else {
         return grid;
       }
     }))
+  }
+
+  function setPathFromStartingNodeArray(tempGridStructureArray, row, column, parentNodeID) {
+    const currentNode = tempGridStructureArray[row - 1][column - 1];
+    const [ parentRow, parentColumn ] = parentNodeID.split("-");
+    const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
+    currentNode.pathFromStartingNode = [...parentNodePathFromStartingNode, parentNodeID];
   }
 
   function updateTempGridStructureArray( tempGridStructureArray, isSearchCompleted, openList, visitedList, currentNode) {
@@ -421,9 +461,8 @@ export default function SettingsPanel() {
     function setCosts(row, column, parentNodeID) { //set f_cost, g_cost, h_cost for neighbour
       //add parentNode as parent into pathFromStartingNode before calling getGcost func
       const currentNode = tempGridStructureArray[row - 1][column - 1];
-      const [ parentRow, parentColumn ] = parentNodeID.split("-");
-      const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
-      currentNode.pathFromStartingNode = [...parentNodePathFromStartingNode, parentNodeID];
+
+      setPathFromStartingNodeArray(tempGridStructureArray, row, column, parentNodeID);
 
       const [fCost, gCost, hCost] = getCosts(row, column, parentNodeID);
 
@@ -643,9 +682,8 @@ export default function SettingsPanel() {
 
     function setAcost(row, column, parentNodeID) {
       const currentNode = tempGridStructureArray[row - 1][column - 1];
-      const [ parentRow, parentColumn ] = parentNodeID.split("-");
-      const parentNodePathFromStartingNode = tempGridStructureArray[parentRow - 1][parentColumn - 1].pathFromStartingNode;
-      currentNode.pathFromStartingNode = [...parentNodePathFromStartingNode, parentNodeID];
+
+      setPathFromStartingNodeArray(tempGridStructureArray, row, column, parentNodeID);
 
       currentNode.a_cost = getAcost(row, column, parentNodeID);
     }
@@ -805,6 +843,8 @@ export default function SettingsPanel() {
         
         queue.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
 
+        setPathFromStartingNodeArray(tempGridStructureArray, row_to_be_searched, column_to_be_searched, currentNode.id); //set parent
+
         updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, queue, visitedList, currentNode);
         takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
       })
@@ -878,6 +918,8 @@ export default function SettingsPanel() {
           return;
         
         stack.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+        setPathFromStartingNodeArray(tempGridStructureArray, row_to_be_searched, column_to_be_searched, currentNode.id); //set parent
 
         updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, stack, visitedList, currentNode);
         takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
@@ -1033,41 +1075,49 @@ export default function SettingsPanel() {
             }}>
             Search
           </div>
+          <div id="compareAll" onClick={() => toggleCompareAllMode()}>
+            Compare All Algorithms
+          </div>
+          <div id="compareSame">
+            Compare with {weightedAlgorithms.includes(grids[0].algorithm)}
+          </div>
         </div>
       </div>
       
-      {grids.map((gridObject, gridIndex) => {
-        const gridStructureArray = gridObject.gridStructureArray;
-        const algorithm = gridObject.algorithm;
-        const completedSearch = gridObject.completedSearch;
-        const snapshotIndex = gridObject.snapshotIndex;
-        const searchTime = gridObject.searchTime;
-        const autoplayer = autoplayers[gridIndex]
+      <div id="grids">
+        {grids.map((gridObject, gridIndex) => {
+          const gridStructureArray = gridObject.gridStructureArray;
+          const algorithm = gridObject.algorithm;
+          const completedSearch = gridObject.completedSearch;
+          const snapshotIndex = gridObject.snapshotIndex;
+          const searchTime = gridObject.searchTime;
+          const autoplayer = autoplayers[gridIndex];
 
-        return (
-          <Grid 
-          key={gridIndex.toString() + settings.gridSize} //using key attribute on grid resets the entire grid state when gridsize changes
-          gridID={gridIndex}
-          gridStructureArray={gridStructureArray}
-          algorithm={algorithm}
-          gridIndex={gridIndex}
-          gridSnapshotsRef={gridSnapshotsRef}
-          snapshotIndex={snapshotIndex}
-          setGridSnapshot={setGridSnapshot}
-          autoplayer={autoplayer}
-          settings={settings}
-          startNodeID={startNodeID}
-          setStartNodeID={setStartNodeID}
-          endNodeID={endNodeID}
-          setEndNodeID={setEndNodeID}
-          wallNodesIDArray={wallNodesIDArray}
-          setWallNodesIDArray={setWallNodesIDArray}
-          completedSearch={completedSearch}
-          searchTime={searchTime}
-          />
-          )
-        })
-      }
+          return (
+            <Grid 
+            key={gridIndex.toString() + settings.gridSize} //using key attribute on grid resets the entire grid state when gridsize changes
+            gridID={gridIndex}
+            gridStructureArray={gridStructureArray}
+            algorithm={algorithm}
+            gridIndex={gridIndex}
+            gridSnapshotsRef={gridSnapshotsRef}
+            snapshotIndex={snapshotIndex}
+            setGridSnapshot={setGridSnapshot}
+            autoplayer={autoplayer}
+            settings={settings}
+            startNodeID={startNodeID}
+            setStartNodeID={setStartNodeID}
+            endNodeID={endNodeID}
+            setEndNodeID={setEndNodeID}
+            wallNodesIDArray={wallNodesIDArray}
+            setWallNodesIDArray={setWallNodesIDArray}
+            completedSearch={completedSearch}
+            searchTime={searchTime}
+            />
+            )
+          })
+        }
+      </div>
     </>
   );
 }

@@ -144,7 +144,7 @@ export default function Grid({
   }
 
   return (
-    <>
+    <div id={"gridSection-" + gridID}>
       <div
         id={"grid-" + gridID}
         className="grid"
@@ -199,6 +199,6 @@ export default function Grid({
       <div className={completedSearch ? "timer" : "timer hidden"}>
         Completed in: {searchTime}ms
       </div>
-    </>
+    </div>
   );
 }

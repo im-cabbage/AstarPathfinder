@@ -1,28 +1,16 @@
 # Notes
 working on :
-- ~~Dijkstra's~~
-- ~~completion timer~~
-
-mon
-- ~~iteration indicator eg. 23/122~~
-
-tues
-- major refactor (shift grid states to settingsPanel.js(parent))
-- compare algo (show %diff)
-- add extra features
-
-wed
-- clean up frontend
-
-thurs
-- documentation
-
-extra features
+- compare algo 
+- (show %diff)
 - save grid design to localstorage
 - reset grid button
 - create random maze
 - highlight to draw wall (left click down + drag over cells)
 - legend table
+
+- clean up frontend
+
+
 
 
 Technical Reflection Documentation :  "Engineering Design & Algorithmic Analysis of an A* Pathfinding System"
