@@ -86,6 +86,8 @@ export default function SettingsPanel() {
   const autoplayers = autoplayersRef.current;
   const [grids, setGrids] = useState(() => initGrids());
   let searchTimeStart;
+  const [startNodeRow, startNodeColumn] = startNodeID.split("-");
+  const [endNodeRow, endNodeColumn] = endNodeID.split("-");
 
   function initGrids() {
     gridSnapshotsRef.current = [[]];
@@ -198,8 +200,35 @@ export default function SettingsPanel() {
     }))
   }
 
+  function updateTempGridStructureArray( tempGridStructureArray, isSearchCompleted, openList, visitedList, currentNode) {
+    openList.forEach((cellObject) => {
+      const row = cellObject.row;
+      const column = cellObject.column;
+
+      tempGridStructureArray[row - 1][column - 1].cellType = "open";
+    })
+
+    visitedList.forEach((cellObject) => {
+      const row = cellObject.row;
+      const column = cellObject.column;
+
+      tempGridStructureArray[row - 1][column - 1].cellType = "closed";
+      tempGridStructureArray[row - 1][column - 1].isCurrent = false;
+    })
+
+    if (isSearchCompleted) {
+      const endNodePathFromStartingNode = tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode; //used for finding shortestPath
+      endNodePathFromStartingNode.forEach((id) => {
+        const [row, column] = id.split("-");
+
+        tempGridStructureArray[row - 1][column - 1].cellType = "shortestPath";
+      })
+    }
+
+    tempGridStructureArray[currentNode.row - 1][currentNode.column - 1].isCurrent = true;
+  }
+
   function astarSearch(gridIndex) {
-    
     // G cost: distance from starting node
     // H cost: distance from end node (Heuristic)
     // F cost: G + H (chooses lowest F cost)
@@ -207,18 +236,13 @@ export default function SettingsPanel() {
     // OPEN cell = queued to be searched
     // CLOSED cell = visited already
     
-
     startTimer();
     resetGridSnapshot(gridIndex);
 
-    
     let isSearchCompleted = false;
     let tempGridStructureArray = initGridStructureArray(settings.gridSize);
     let openList = [];
     let closedList = [];
-
-    const [startNodeRow, startNodeColumn] = startNodeID.split("-");
-    const [endNodeRow, endNodeColumn] = endNodeID.split("-");
 
     let currentNode;
 
@@ -408,34 +432,6 @@ export default function SettingsPanel() {
       currentNode.f_cost = fCost;
     }
 
-    function updateTempGridStructureArray( openList, visitedList, currentNode) {
-      openList.forEach((cellObject) => {
-        const row = cellObject.row;
-        const column = cellObject.column;
-
-        tempGridStructureArray[row - 1][column - 1].cellType = "open";
-      })
-
-      visitedList.forEach((cellObject) => {
-        const row = cellObject.row;
-        const column = cellObject.column;
-
-        tempGridStructureArray[row - 1][column - 1].cellType = "closed";
-        tempGridStructureArray[row - 1][column - 1].isCurrent = false;
-      })
-
-      if (isSearchCompleted) {
-        const endNodePathFromStartingNode = tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode; //used for finding shortestPath
-        endNodePathFromStartingNode.forEach((id) => {
-          const [row, column] = id.split("-");
-
-          tempGridStructureArray[row - 1][column - 1].cellType = "shortestPath";
-        })
-      }
-
-      tempGridStructureArray[currentNode.row - 1][currentNode.column - 1].isCurrent = true;
-    }
-    
     while (true) {
       buildMinHeap(openList);
       currentNode = openList[0];
@@ -453,13 +449,13 @@ export default function SettingsPanel() {
         break;
       }
 
-      updateTempGridStructureArray(openList, closedList, currentNode);
+      updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, openList, closedList, currentNode);
       takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
 
       //if end node is found
       if (currentNode.id === endNodeID) {
         isSearchCompleted = true;
-        updateTempGridStructureArray(openList, closedList, currentNode);
+        updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, openList, closedList, currentNode);
         takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
         setGrid(gridIndex, tempGridStructureArray, getSearchTime());
         break;
@@ -513,7 +509,7 @@ export default function SettingsPanel() {
                   heapInsert(openList, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
                 }
 
-                updateTempGridStructureArray(openList, closedList, currentNode);
+                updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, openList, closedList, currentNode);
                 takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
               } 
             }
@@ -523,19 +519,14 @@ export default function SettingsPanel() {
     }
   }
 
-  function dijkstrasSearch(gridIndex) {//uses min-heap priority queue (FIFO)
-
+  function dijkstrasSearch(gridIndex) { //uses min-heap priority queue (FIFO)
     startTimer();
     resetGridSnapshot(gridIndex);
 
-    
     let isSearchCompleted = false;
     let tempGridStructureArray = initGridStructureArray(settings.gridSize);
     let queue = [];
     let closedList = [];
-
-    const [startNodeRow, startNodeColumn] = startNodeID.split("-");
-    const [endNodeRow, endNodeColumn] = endNodeID.split("-");
 
     let currentNode;
 
@@ -659,35 +650,6 @@ export default function SettingsPanel() {
       currentNode.a_cost = getAcost(row, column, parentNodeID);
     }
 
-    function updateTempGridStructureArray( queue, visitedList, currentNode) {
-      queue.forEach((cellObject) => {
-        const row = cellObject.row;
-        const column = cellObject.column;
-
-        tempGridStructureArray[row - 1][column - 1].cellType = "open";
-      })
-
-      visitedList.forEach((cellObject) => {
-        const row = cellObject.row;
-        const column = cellObject.column;
-
-        tempGridStructureArray[row - 1][column - 1].cellType = "closed";
-        tempGridStructureArray[row - 1][column - 1].isCurrent = false;
-      })
-
-      if (isSearchCompleted) {
-        const endNodePathFromStartingNode = tempGridStructureArray[endNodeRow - 1][endNodeColumn - 1].pathFromStartingNode; //used for finding shortestPath
-        endNodePathFromStartingNode.forEach((id) => {
-          const [row, column] = id.split("-");
-
-          tempGridStructureArray[row - 1][column - 1].cellType = "shortestPath";
-        })
-      }
-
-      tempGridStructureArray[currentNode.row - 1][currentNode.column - 1].isCurrent = true;
-    }
-
-    
     while (true) {
       buildMinHeap(queue);
       currentNode = queue[0];
@@ -705,13 +667,13 @@ export default function SettingsPanel() {
         break;
       }
 
-      updateTempGridStructureArray(queue, closedList, currentNode);
+      updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, queue, closedList, currentNode);
       takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
 
       //if end node is found
       if (currentNode.id === endNodeID) {
         isSearchCompleted = true;
-        updateTempGridStructureArray(queue, closedList, currentNode);
+        updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, queue, closedList, currentNode);
         takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
         setGrid(gridIndex, tempGridStructureArray, getSearchTime());
         break;
@@ -765,13 +727,161 @@ export default function SettingsPanel() {
                   heapInsert(queue, tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
                 }
 
-                updateTempGridStructureArray(queue, closedList, currentNode);
+                updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, queue, closedList, currentNode);
                 takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
               } 
             }
           }
         }
       }
+    }
+  }
+
+  function breadthFirstSearch(gridIndex) {
+    //BFS uses 4 directional movement (no diagonal travel)
+    //unweighted graph, cannot compare to astar
+    //queue is FIFO first in first out
+
+    startTimer();
+    resetGridSnapshot(gridIndex);
+
+    let isSearchCompleted = false;
+    let tempGridStructureArray = initGridStructureArray(settings.gridSize);
+    let queue = [];
+    let visitedList = [];
+
+    let currentNode;
+
+    queue.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //[{id: , a_cost: , path: [first,..] }, ]
+
+    while (true) {
+      currentNode = queue[0];
+      visitedList.push(queue[0]); //add first element to visited list
+      queue.shift(); //remove first element
+
+      //if no possible path to endNode
+      if (!currentNode) {
+        setGrid(gridIndex, tempGridStructureArray);
+        console.log("Not possible to reach end Node");
+        window.alert("Not possible to reach end Node");
+        break;
+      }
+
+      updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, queue, visitedList, currentNode);
+      takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+
+      //if end node is found
+      if (currentNode.id === endNodeID) {
+        isSearchCompleted = true;
+        updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, queue, visitedList, currentNode);
+        takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+        setGrid(gridIndex, tempGridStructureArray, getSearchTime());
+        break;
+      }
+
+      const [current_row, current_column] = currentNode.id.split("-");
+      const gridSize = settings.gridSize;
+
+      const array_of_neighbour_coords_to_be_searched = [ [-1,0] , [0,1] , [1,0] , [0,-1] ]; //[row, col] check top, right, bottom, left in order
+
+      // eslint-disable-next-line no-loop-func
+      array_of_neighbour_coords_to_be_searched.forEach((coordinate_to_be_searched) => {
+        const [coordinate_to_be_searched_row, coordinate_to_be_searched_column] = coordinate_to_be_searched;
+        const row_to_be_searched = parseInt(current_row) + coordinate_to_be_searched_row;
+        const column_to_be_searched = parseInt(current_column) + coordinate_to_be_searched_column;
+
+        const id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+        if (row_to_be_searched <= 0 || row_to_be_searched > gridSize) return
+        if (column_to_be_searched <= 0 || column_to_be_searched > gridSize) return
+
+        //skip if neighbour is a wall, is in visitedList or already in queue
+        if (
+          wallNodesIDArray.includes(id_to_be_searched) ||
+          visitedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+          queue.some(cellObject => cellObject.id === id_to_be_searched)
+        )
+          return;
+        
+        queue.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+        updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, queue, visitedList, currentNode);
+        takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+      })
+    }
+  }
+
+  function depthFirstSearch(gridIndex) {
+    //DFS uses 4 directional movement (no diagonal travel)
+    //unweighted graph, cannot compare to astar
+    //uses a stack (Last In First Out)
+
+    startTimer();
+    resetGridSnapshot(gridIndex);
+
+    let isSearchCompleted = false;
+    let tempGridStructureArray = initGridStructureArray(settings.gridSize);
+    const stack = [];
+    const visitedList = [];
+
+    let currentNode;
+
+    stack.push(tempGridStructureArray[startNodeRow - 1][startNodeColumn - 1]); //add startNode to stack
+
+    while (true) {
+      currentNode = stack[stack.length - 1]; //(Last In First Out)
+      visitedList.push(stack[stack.length - 1]);
+      stack.pop();
+
+      //if no possible path to endNode
+      if (!currentNode) {
+        setGrid(gridIndex, tempGridStructureArray);
+        console.log("Not possible to reach end Node");
+        window.alert("Not possible to reach end Node");
+        break;
+      }
+
+      updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, stack, visitedList, currentNode);
+      takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+
+      //if end node is found
+      if (currentNode.id === endNodeID) {
+        isSearchCompleted = true;
+        updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, stack, visitedList, currentNode);
+        takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+        setGrid(gridIndex, tempGridStructureArray, getSearchTime());
+        break;
+      }
+
+      const [current_row, current_column] = currentNode.id.split("-");
+      const gridSize = settings.gridSize;
+
+      const array_of_neighbour_coords_to_be_searched = [ [0,-1] , [1,0] , [0,1] , [-1,0] ]; //[row, col] check left, bottom, right, top in order (reversed from BFS)
+
+      // eslint-disable-next-line no-loop-func
+      array_of_neighbour_coords_to_be_searched.forEach((coordinate_to_be_searched) => {
+        const [coordinate_to_be_searched_row, coordinate_to_be_searched_column] = coordinate_to_be_searched;
+        const row_to_be_searched = parseInt(current_row) + coordinate_to_be_searched_row;
+        const column_to_be_searched = parseInt(current_column) + coordinate_to_be_searched_column;
+
+        const id_to_be_searched = `${row_to_be_searched}-${column_to_be_searched}`;
+
+        if (row_to_be_searched <= 0 || row_to_be_searched > gridSize) return
+        if (column_to_be_searched <= 0 || column_to_be_searched > gridSize) return
+
+        //skip if neighbour is a wall, is in visitedList or already in stack
+        if (
+          wallNodesIDArray.includes(id_to_be_searched) ||
+          visitedList.some(cellObject => cellObject.id === id_to_be_searched) ||
+          stack.some(cellObject => cellObject.id === id_to_be_searched)
+        )
+          return;
+        
+        stack.push(tempGridStructureArray[row_to_be_searched - 1][column_to_be_searched - 1]);
+
+        updateTempGridStructureArray(tempGridStructureArray, isSearchCompleted, stack, visitedList, currentNode);
+        takeGridSnapshot(gridIndex, tempGridStructureArray); //add snapshot for the iteration feature
+      })
     }
   }
 
@@ -911,10 +1021,10 @@ export default function SettingsPanel() {
                     dijkstrasSearch(gridIndex);
                     break;
                   case "bfs":
-                    // breadthFirstSearch(gridIndex);
+                    breadthFirstSearch(gridIndex);
                     break;
                   case "dfs":
-                    // depthFirstSearch(gridIndex);
+                    depthFirstSearch(gridIndex);
                     break;
                   default:
                     break;
